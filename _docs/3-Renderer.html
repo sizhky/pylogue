@@ -148,8 +148,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./0-Card.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">0-Card.html</span></a>
+  <a href="./0-card.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Card component for displaying chat messages</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -188,6 +188,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">ChatApp Examples</span></a>
   </div>
 </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./6-jupyterexample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Find process using port 5001</span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -223,7 +229,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code> ChatRenderer (card:Optional[pylogue.cards.ChatCard]=None,
                input_placeholder:str='Type a message...',
                input_style:Optional[str]=None,
-               chat_container_style:Optional[str]=None)</code></pre>
+               chat_container_style:Optional[str]=None,
+               ws_endpoint:str='/ws')</code></pre>
 </blockquote>
 <p><em>Renders chat components with customizable styling.</em></p>
 </section>
@@ -244,7 +251,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>renderer.render_message(msg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display cell-output-markdown">
 <div>
-<div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+<div style="
+        background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        width: 60%; align-self: center; 
+        text-align: right; border-radius: 1em; 
+        padding: 1.25em">
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️ User: </u></span>
 <div class="marked" style="white-space: pre-wrap;">
 Hello!

@@ -34,11 +34,7 @@ injection - Customizable components
 >               renderer:pylogue.renderer.ChatRenderer,
 >               config:Optional[__main__.ChatAppConfig]=None)
 
-\*Complete chat application with full dependency injection.
-
-This is the main orchestration layer that ties together: - Session
-management (state) - Chat service (business logic) - Renderer
-(presentation) - FastHTML + WebSocket (infrastructure)\*
+*Main chat application composing all components.*
 
 ## Factory Functions for Easy Setup
 
@@ -200,7 +196,11 @@ renderer.render_messages(messages)
 <div id="chat-cards" class="chat-cards"
 style="display: flex; flex-direction: column; gap: 10px;">
 
-    <div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        width: 60%; align-self: center; 
+        text-align: right; border-radius: 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>
@@ -212,7 +212,11 @@ Hello!
 </div>
 
     </div>
-    <div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        width: 60%; align-self: center; 
+        text-align: left; border-radius: 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️
 Assistant: </u></span>
@@ -224,7 +228,11 @@ Hi there! How can I help?
 </div>
 
     </div>
-    <div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        width: 60%; align-self: center; 
+        text-align: left; border-radius: 1em; 
+        padding: 1.25em">
 
 🕵️‍♂️ Assistant: <span class="spinner"></span>
 

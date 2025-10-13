@@ -245,15 +245,17 @@ app = create_default_chat_app(responder=your_responder)
 
 1.  Read through the notebooks in order:
 
-    - `2-Session.ipynb` - Understand state management
-    - `3-Service.ipynb` - Learn business logic layer
-    - `4-Renderer.ipynb` - Explore presentation layer
-    - `5-ChatApp.ipynb` - See full integration
-    - `6-Examples.ipynb` - Working examples
+    - `1-Session.ipynb` - Understand state management
+    - `2-Service.ipynb` - Learn business logic layer
+    - `3-Renderer.ipynb` - Explore presentation layer
+    - `4-ChatApp.ipynb` - See full integration
+    - `5-Examples.ipynb` - Working examples
+    - `6-JupyterExample.ipynb` - Jupyter integration
 
-2.  Try the examples in `6-Examples.ipynb`
+2.  Try the examples in `5-Examples.ipynb`
 
-3.  Build your own custom responder
+3.  Build your own custom responder and test it out in
+    `6-JupyterExample.ipynb`
 
 4.  Deploy to production with your preferred hosting
 

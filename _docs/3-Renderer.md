@@ -13,7 +13,8 @@ This module provides rendering components for the chat interface.
 >  ChatRenderer (card:Optional[pylogue.cards.ChatCard]=None,
 >                    input_placeholder:str='Type a message...',
 >                    input_style:Optional[str]=None,
->                    chat_container_style:Optional[str]=None)
+>                    chat_container_style:Optional[str]=None,
+>                    ws_endpoint:str='/ws')
 
 *Renders chat components with customizable styling.*
 
@@ -36,7 +37,11 @@ renderer.render_message(msg)
 
 <div>
 
-<div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+<div style="
+        background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        width: 60%; align-self: center; 
+        text-align: right; border-radius: 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>

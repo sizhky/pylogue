@@ -148,8 +148,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./0-Card.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">0-Card.html</span></a>
+  <a href="./0-card.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Card component for displaying chat messages</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -186,6 +186,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="./5-examples.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">ChatApp Examples</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./6-jupyterexample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Find process using port 5001</span></a>
   </div>
 </li>
     </ul>
@@ -266,8 +272,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           renderer:pylogue.renderer.ChatRenderer,
           config:Optional[__main__.ChatAppConfig]=None)</code></pre>
 </blockquote>
-<p>*Complete chat application with full dependency injection.</p>
-<p>This is the main orchestration layer that ties together: - Session management (state) - Chat service (business logic) - Renderer (presentation) - FastHTML + WebSocket (infrastructure)*</p>
+<p><em>Main chat application composing all components.</em></p>
 </section>
 </section>
 <section id="factory-functions-for-easy-setup" class="level2">
@@ -422,19 +427,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output cell-output-display cell-output-markdown">
 <div>
 <div id="chat-cards" class="chat-cards" style="display: flex; flex-direction: column; gap: 10px;">
-<pre><code>&lt;div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em"&gt;</code></pre>
+<pre><code>&lt;div style="
+    background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    width: 60%; align-self: center; 
+    text-align: right; border-radius: 1em; 
+    padding: 1.25em"&gt;</code></pre>
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️ User: </u></span>
 <div class="marked" style="white-space: pre-wrap;">
 Hello!
 </div>
 <pre><code>&lt;/div&gt;
-&lt;div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em"&gt;</code></pre>
+&lt;div style="
+    background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    width: 60%; align-self: center; 
+    text-align: left; border-radius: 1em; 
+    padding: 1.25em"&gt;</code></pre>
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️ Assistant: </u></span>
 <div class="marked" style="white-space: pre-wrap;">
 Hi there! How can I help?
 </div>
 <pre><code>&lt;/div&gt;
-&lt;div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em"&gt;</code></pre>
+&lt;div style="
+    background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    width: 60%; align-self: center; 
+    text-align: left; border-radius: 1em; 
+    padding: 1.25em"&gt;</code></pre>
 🕵️‍♂️ Assistant: <span class="spinner"></span>
 </div>
 </div>

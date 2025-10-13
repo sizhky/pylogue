@@ -29,5 +29,9 @@
   "5-Examples.ipynb": {
     "5-examples.html": "357366ba",
     "5-examples.html.md": "b17a6d60"
+  },
+  "6-JupyterExample.ipynb": {
+    "6-jupyterexample.html": "d86505d2",
+    "6-jupyterexample.html.md": "d11addc2"
   }
 }

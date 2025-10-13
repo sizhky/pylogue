@@ -20,7 +20,7 @@ app.run(port=5001)
 ### Custom Styling
 
 ``` python
-from pylogue.cards import ChatCard
+from pylogue.card import ChatCard
 from pylogue.chatapp import create_default_chat_app, ChatAppConfig
 
 card = ChatCard(
@@ -51,7 +51,7 @@ from pylogue.chatapp import ChatApp, ChatAppConfig
 from pylogue.session import InMemorySessionManager
 from pylogue.service import ChatService
 from pylogue.renderer import ChatRenderer
-from pylogue.cards import ChatCard
+from pylogue.card import ChatCard
 
 # 1. Configure components
 session_manager = InMemorySessionManager()
@@ -162,7 +162,7 @@ html = renderer.render_messages(messages)
 
 ## 📚 Examples
 
-See `5-Examples.ipynb` for complete working examples:
+See `6-Examples.ipynb` for complete working examples:
 
 1.  **Echo Bot** - Simplest possible implementation
 2.  **Custom Styled Chat** - UI/UX customization
@@ -250,10 +250,12 @@ app = create_default_chat_app(responder=your_responder)
     - `3-Renderer.ipynb` - Explore presentation layer
     - `4-ChatApp.ipynb` - See full integration
     - `5-Examples.ipynb` - Working examples
+    - `6-JupyterExample.ipynb` - Jupyter integration
 
 2.  Try the examples in `5-Examples.ipynb`
 
-3.  Build your own custom responder
+3.  Build your own custom responder and test it out in
+    `6-JupyterExample.ipynb`
 
 4.  Deploy to production with your preferred hosting
 

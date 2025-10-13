@@ -8,3 +8,4 @@ website:
       - 3-Renderer.ipynb
       - 4-ChatApp.ipynb
       - 5-Examples.ipynb
+      - 6-JupyterExample.ipynb

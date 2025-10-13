@@ -2,23 +2,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://sizhky.github.io/pylogue/index.html</loc>
-    <lastmod>2025-10-13T02:56:28.367Z</lastmod>
+    <lastmod>2025-10-13T06:05:15.428Z</lastmod>
   </url>
   <url>
-    <loc>https://sizhky.github.io/pylogue/0-Card.html</loc>
-    <lastmod>2025-10-13T02:56:28.334Z</lastmod>
+    <loc>https://sizhky.github.io/pylogue/0-card.html</loc>
+    <lastmod>2025-10-13T06:05:15.402Z</lastmod>
   </url>
   <url>
-    <loc>https://sizhky.github.io/pylogue/4-chatapp.html</loc>
-    <lastmod>2025-10-13T02:56:28.902Z</lastmod>
-  </url>
-  <url>
-    <loc>https://sizhky.github.io/pylogue/3-Renderer.html</loc>
-    <lastmod>2025-10-13T02:56:28.371Z</lastmod>
+    <loc>https://sizhky.github.io/pylogue/6-jupyterexample.html</loc>
+    <lastmod>2025-10-13T06:05:15.418Z</lastmod>
   </url>
   <url>
     <loc>https://sizhky.github.io/pylogue/2-Service.html</loc>
     <lastmod>2025-10-13T02:56:28.535Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sizhky.github.io/pylogue/3-Renderer.html</loc>
+    <lastmod>2025-10-13T06:05:15.426Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sizhky.github.io/pylogue/4-chatapp.html</loc>
+    <lastmod>2025-10-13T06:05:15.950Z</lastmod>
   </url>
   <url>
     <loc>https://sizhky.github.io/pylogue/1-Session.html</loc>
