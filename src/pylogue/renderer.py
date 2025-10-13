@@ -21,6 +21,7 @@ class ChatRenderer:
         input_placeholder: str = "Type a message...",
         input_style: Optional[str] = None,
         chat_container_style: Optional[str] = None,
+        ws_endpoint: str = "/ws",
     ):
         """
         Initialize ChatRenderer.
@@ -30,9 +31,11 @@ class ChatRenderer:
             input_placeholder: Placeholder text for input field
             input_style: Custom CSS style for input field
             chat_container_style: Custom CSS style for chat container
+            ws_endpoint: WebSocket endpoint path
         """
         self.card = card or ChatCard()
         self.input_placeholder = input_placeholder
+        self.ws_endpoint = ws_endpoint
         self.input_style = input_style or (
             "width: 60%; max-width: 600px; padding: 0.75em; "
             "font-size: 1em; border-radius: 0.5em"
@@ -100,7 +103,7 @@ class ChatRenderer:
         ws_send: bool = True,
     ) -> Any:
         """
-        Render the input form with styling.
+        Render the input form with WebSocket connection.
 
         Args:
             form_id: HTML ID for the form
@@ -118,34 +121,8 @@ class ChatRenderer:
         return Form(
             self.render_input(),
             id=form_id,
+            hx_ext="ws",
+            ws_connect=self.ws_endpoint,
             ws_send=ws_send,
             style=form_style,
-        )
-
-    def render_chat_interface(
-        self,
-        messages: List[Message],
-        title: str = "Chat",
-        header_style: Optional[str] = None,
-        container_style: Optional[str] = None,
-    ) -> Any:
-        """
-        Render complete chat interface with messages and input.
-
-        Args:
-            messages: List of messages to display
-            title: Chat title/header
-            header_style: Custom style for header
-            container_style: Custom style for main container
-
-        Returns:
-            FastHTML Div with complete chat interface
-        """
-        header_style = header_style or "text-align: center; padding: 1em;"
-
-        return Div(
-            H1(title, style=header_style),
-            self.render_messages(messages),
-            self.render_form(),
-            style=container_style,
         )

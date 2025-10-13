@@ -60,6 +60,12 @@ class ChatService:
         self.error_handler = error_handler or DefaultErrorHandler()
         self.context_provider = context_provider
 
+    def _is_async_generator(self, obj):
+        """Check if object is an async generator."""
+        return inspect.isasyncgenfunction(obj) or (
+            hasattr(obj, "__call__") and inspect.isasyncgenfunction(obj.__call__)
+        )
+
     async def process_message(
         self, user_message: str, session: Optional[ChatSession] = None
     ) -> str:
@@ -79,7 +85,15 @@ class ChatService:
             if self.context_provider and session:
                 context = self.context_provider(session)
 
-            # Call responder
+            # Check if responder is an async generator (streaming)
+            if self._is_async_generator(self.responder):
+                # For streaming responders, collect all chunks
+                chunks = []
+                async for chunk in self.responder(user_message, context):
+                    chunks.append(str(chunk))
+                return "".join(chunks)
+
+            # Non-streaming responder
             if inspect.iscoroutinefunction(self.responder):
                 result = await self.responder(user_message, context)
             else:
@@ -91,6 +105,42 @@ class ChatService:
 
         except Exception as e:
             return self.error_handler(e, user_message)
+
+    async def process_message_stream(
+        self, user_message: str, session: Optional[ChatSession] = None
+    ):
+        """
+        Process a user message and stream the response token by token.
+
+        Args:
+            user_message: The user's input message
+            session: Optional chat session for context
+
+        Yields:
+            Response chunks as they are generated
+        """
+        try:
+            # Extract context if provider exists
+            context = None
+            if self.context_provider and session:
+                context = self.context_provider(session)
+
+            # Check if responder supports streaming
+            if self._is_async_generator(self.responder):
+                async for chunk in self.responder(user_message, context):
+                    yield str(chunk)
+            else:
+                # Non-streaming responder - yield full response
+                if inspect.iscoroutinefunction(self.responder):
+                    result = await self.responder(user_message, context)
+                else:
+                    result = self.responder(user_message, context)
+                    if inspect.isawaitable(result):
+                        result = await result
+                yield str(result)
+
+        except Exception as e:
+            yield self.error_handler(e, user_message)
 
     async def process_session_message(
         self, session: ChatSession, user_message: str, add_to_session: bool = True

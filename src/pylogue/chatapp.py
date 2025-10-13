@@ -78,15 +78,7 @@ class ChatAppConfig:
 
 # %% ../../nbs/4-ChatApp.ipynb 4
 class ChatApp:
-    """
-    Complete chat application with full dependency injection.
-
-    This is the main orchestration layer that ties together:
-    - Session management (state)
-    - Chat service (business logic)
-    - Renderer (presentation)
-    - FastHTML + WebSocket (infrastructure)
-    """
+    """Main chat application composing all components."""
 
     def __init__(
         self,
@@ -96,7 +88,7 @@ class ChatApp:
         config: Optional[ChatAppConfig] = None,
     ):
         """
-        Initialize ChatApp with injected dependencies.
+        Initialize ChatApp with dependency injection.
 
         Args:
             session_manager: Manages chat sessions
@@ -155,12 +147,11 @@ class ChatApp:
                     H1(self.config.app_title, style=self.config.header_style),
                     self.renderer.render_messages(initial_messages),
                     self.renderer.render_form(),
-                    hx_ext="ws",
-                    ws_connect=self.config.ws_endpoint,
                     style=container_style,
                 ),
             )
 
+        # Register WebSocket route with message handler
         @self.app.ws(
             self.config.ws_endpoint, conn=self._on_connect, disconn=self._on_disconnect
         )
@@ -183,12 +174,11 @@ class ChatApp:
 
     async def _handle_websocket_message(self, msg: str, send, ws):
         """
-        Handle incoming WebSocket message with full lifecycle:
+        Handle incoming WebSocket message with streaming support:
         1. Add user message
-        2. Show pending assistant message with spinner
-        3. Process with chat service
-        4. Update with actual response
-        5. Clear input
+        2. Add empty assistant message for streaming
+        3. Stream response tokens and update message progressively
+        4. Clear input
         """
         session_id = str(id(ws))
         session = self.session_manager.get_session(session_id)
@@ -204,21 +194,32 @@ class ChatApp:
         session.add_message("User", msg)
         await send(self.renderer.render_messages(session.get_messages()))
 
-        # Step 2: Add pending assistant message with spinner
-        pending_msg = session.add_message("Assistant", "", pending=True)
-        await send(self.renderer.render_messages(session.get_messages()))
+        # Step 2: Add empty assistant message for streaming
+        assistant_msg = session.add_message("Assistant", "", pending=False)
 
-        # Step 3: Process message with chat service
+        # Step 3: Stream response and update progressively
         try:
-            response = await self.chat_service.process_message(msg, session)
+            response_chunks = []
+            chunk_count = 0
+            async for chunk in self.chat_service.process_message_stream(msg, session):
+                response_chunks.append(chunk)
+                chunk_count += 1
+                # Update the assistant message with accumulated response
+                full_response = "".join(response_chunks)
+                session.update_message(
+                    assistant_msg.id, content=full_response, pending=False
+                )
+                # Send updated message list to UI
+                print(f"📤 Sending chunk #{chunk_count}: {repr(chunk)}")  # Debug
+                await send(self.renderer.render_messages(session.get_messages()))
+
         except Exception as e:
-            response = f"Error: {str(e)}"
+            # Handle errors
+            error_msg = f"Error: {str(e)}"
+            session.update_message(assistant_msg.id, content=error_msg, pending=False)
+            await send(self.renderer.render_messages(session.get_messages()))
 
-        # Step 4: Update pending message with actual response
-        session.update_message(pending_msg.id, content=response, pending=False)
-        await send(self.renderer.render_messages(session.get_messages()))
-
-        # Step 5: Clear input field
+        # Step 4: Clear input field
         await send(self.renderer.render_input())
 
     def run(
