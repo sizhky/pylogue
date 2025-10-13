@@ -2,15 +2,33 @@
 
 This folder contains ready-to-run example scripts demonstrating various features of the Pylogue chat framework.
 
-## 🚀 Quick Start
+## � Directory Structure
+
+```
+scripts/examples/
+├── basic-functionality/    # Core framework examples
+│   ├── 1-echo-bot.py
+│   ├── 2-magic-assistant.py
+│   ├── 3-smart-assistant.py
+│   ├── 4-code-assistant.py
+│   └── 5-supply-chain-rca.py
+└── ai/                     # AI integration examples
+    └── pydantic-ai.py
+```
+
+## �🚀 Quick Start
 
 Each script runs independently on different ports. Simply run:
 
 ```bash
-python scripts/<script-name>.py
+# For basic examples
+python scripts/examples/basic-functionality/<script-name>.py
+
+# For AI examples
+python scripts/examples/ai/<script-name>.py
 ```
 
-## 📚 Examples
+## 📚 Basic Functionality Examples
 
 ### 1. Echo Bot (`1-echo-bot.py`)
 **Port:** 5001
@@ -18,7 +36,7 @@ python scripts/<script-name>.py
 The simplest possible chat app - echoes back what you say.
 
 ```bash
-python scripts/1-echo-bot.py
+python scripts/examples/basic-functionality/1-echo-bot.py
 ```
 
 **Features:**
@@ -34,7 +52,7 @@ python scripts/1-echo-bot.py
 Custom styled chat with mystical theme.
 
 ```bash
-python scripts/2-magic-assistant.py
+python scripts/examples/basic-functionality/2-magic-assistant.py
 ```
 
 **Features:**
@@ -51,7 +69,7 @@ python scripts/2-magic-assistant.py
 Context-aware assistant that uses conversation history.
 
 ```bash
-python scripts/3-smart-assistant.py
+python scripts/examples/basic-functionality/3-smart-assistant.py
 ```
 
 **Features:**
@@ -69,7 +87,7 @@ python scripts/3-smart-assistant.py
 Multi-language code examples with syntax highlighting.
 
 ```bash
-python scripts/4-code-assistant.py
+python scripts/examples/basic-functionality/4-code-assistant.py
 ```
 
 **Features:**
@@ -86,7 +104,7 @@ python scripts/4-code-assistant.py
 Full custom DI implementation for supply chain analysis.
 
 ```bash
-python scripts/5-supply-chain-rca.py
+python scripts/examples/basic-functionality/5-supply-chain-rca.py
 ```
 
 **Features:**
@@ -96,6 +114,24 @@ python scripts/5-supply-chain-rca.py
 - Specialized styling for enterprise use
 - Context-aware responses
 - Demonstrates full `ChatApp` customization
+
+---
+
+## 🤖 AI Integration Examples
+
+### Pydantic AI (`ai/pydantic-ai.py`)
+**Port:** 5002
+
+Integration with Pydantic AI for structured AI responses.
+
+```bash
+python scripts/examples/ai/pydantic-ai.py
+```
+
+**Features:**
+- Pydantic AI integration
+- Structured response handling
+- Type-safe AI interactions
 
 ---
 
