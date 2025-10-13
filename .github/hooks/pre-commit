@@ -1,0 +1,41 @@
+#!/bin/sh
+echo "[DEBUG] pre-commit hook triggered" >&2
+
+# Get current branch
+branch=$(git symbolic-ref --short HEAD)
+
+# Get staged Python files
+staged_py_files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
+
+# Format check only; do not modify files silently
+if [ "$branch" = "main" ] && [ -n "$staged_py_files" ]; then
+  if ! ruff format --check $staged_py_files; then
+    echo "❌ Ruff formatting issues found. Run:\n----✂︎----------------------------------------------------------"
+    echo "ruff format \\"
+    echo "$staged_py_files" | sed 's/ /\n\t/g' | sed 's/^/\t/'
+    echo " ----✂︎----------------------------------------------------------"
+    echo "to fix those files, or just run 'ruff format' to fix the whole repo. If you don't have ruff, run `uv tool install ruff` to install it."
+    exit 1
+  fi
+fi
+
+if git diff --cached --name-only | grep -q "version"; then
+  echo "✅ version updated."
+else
+  echo "❌ the version number in the file in \"src/<project>/version\" must be updated on every commit."
+  exit 1
+fi
+
+# make sure all tests are passing
+if ! pytest --maxfail=1 --disable-warnings -q; then
+  echo "❌ Tests failed. Please fix them before committing."
+  exit 1
+fi
+
+exit 0
+
+# Usage
+# 1. Save this script as `.github/hooks/pre-commit` in your repository.
+# 2. Make it executable: `chmod +x .github/hooks/precommit`.
+# 3. Ensure your Git configuration allows hooks: `git config core.hooksPath .github/hooks`.
+# 4. Commit your changes, and the hook will run automatically.

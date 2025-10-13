@@ -1,0 +1,33 @@
+{
+  "index.ipynb": {
+    "README.md": "7c7d59c7",
+    "index.html": "80dc613b",
+    "index.html.md": "b5ca8f35"
+  },
+  "3-Renderer.ipynb": {
+    "3-Renderer.html": "ae500a28",
+    "3-Renderer.md": "85fb66a9"
+  },
+  "2-Service.ipynb": {
+    "2-Service.html": "b0f4ea03",
+    "2-Service.md": "016e1712"
+  },
+  "4-ChatApp.ipynb": {
+    "4-chatapp.html": "0fbaaa1b",
+    "4-chatapp.html.md": "5a946adc"
+  },
+  "1-Session.ipynb": {
+    "1-Session.html": "238b4e5d",
+    "1-Session.md": "8d95a559"
+  },
+  "0-Card.ipynb": {
+    "0-Card.html": "a8e91423",
+    "0-Card.md": "55047d09",
+    "0-card.html": "fe8064d7",
+    "0-card.html.md": "7344238f"
+  },
+  "5-Examples.ipynb": {
+    "5-examples.html": "357366ba",
+    "5-examples.html.md": "b17a6d60"
+  }
+}
