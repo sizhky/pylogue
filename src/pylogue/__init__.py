@@ -14,3 +14,5 @@ __version__ = "0.1.0"
 
 from .__pre_init__ import cli
 from .health import *
+
+from .chatapp import create_default_chat_app

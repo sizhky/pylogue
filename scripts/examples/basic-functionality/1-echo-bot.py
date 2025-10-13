@@ -10,8 +10,8 @@ async def echo_bot(message: str, context=None) -> str:
     return f"🔊 You said: {message}"
 
 
+# Create the app instance at module level for reload support
+echo_app = create_default_chat_app(responder=echo_bot)
+
 if __name__ == "__main__":
-    # Create with one line
-    echo_app = create_default_chat_app(responder=echo_bot)
-    print("✅ Echo bot ready!")
     echo_app.run(port=5001)
