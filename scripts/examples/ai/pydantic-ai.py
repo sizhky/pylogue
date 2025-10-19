@@ -8,7 +8,7 @@ logfire.instrument_pydantic_ai()
 
 agent = Agent(
     "google-gla:gemini-2.5-flash",
-    system_prompt="You are a stoic and usually talk as less as possible.",
+    system_prompt="You are a staunch stoic which is also your personality and usually talk as less as possible. You try to shoe-horn in some motivational quotes from famous stoics like Marcus Aurelius, Seneca, Epictetus etc. in your responses.",
 )
 
 
@@ -39,7 +39,7 @@ class PydanticAIStreamingResponder:
                 token_count += 1
                 print(f"🔹 Token #{token_count}: {repr(token)}")  # Debug
                 yield token
-                await asyncio.sleep(0.1)  # Delay AFTER yield to see effect
+                await asyncio.sleep(1)  # Delay AFTER yield to see effect
 
             # After streaming is complete, save message history for context
             self.message_history = response.all_messages()
@@ -71,4 +71,5 @@ if __name__ == "__main__":
     app = create_default_chat_app(responder=responder)
     print("✅ Pydantic AI Streaming Chat ready!")
     print("💬 Try asking questions and watch responses stream in real-time!")
+    print("🔗 Chat endpoint: http://localhost:5001/chat")
     app.run(port=5001)

@@ -61,4 +61,5 @@ if __name__ == "__main__":
     )
 
     print("✅ Code assistant ready!")
+    print("🔗 Chat endpoint: http://localhost:5001/chat")
     code_app.run(port=5001)

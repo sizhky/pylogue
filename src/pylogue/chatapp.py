@@ -34,6 +34,7 @@ class ChatAppConfig:
 
     # WebSocket settings
     ws_endpoint: str = "/ws"
+    chat_endpoint: str = "/chat"
 
     # FastHTML extensions and headers
     markdown_enabled: bool = True
@@ -131,7 +132,7 @@ class ChatApp:
     def _register_routes(self):
         """Register HTTP and WebSocket routes."""
 
-        @self.app.route("/")
+        @self.app.route(self.config.chat_endpoint)
         def home():
             """Main chat interface."""
             initial_messages = self._get_initial_messages()

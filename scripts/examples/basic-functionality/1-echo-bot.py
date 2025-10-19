@@ -14,4 +14,5 @@ async def echo_bot(message: str, context=None) -> str:
 echo_app = create_default_chat_app(responder=echo_bot)
 
 if __name__ == "__main__":
+    print("🔗 Chat endpoint: http://localhost:5001/chat")
     echo_app.run(port=5001)

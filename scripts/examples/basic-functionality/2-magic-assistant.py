@@ -40,4 +40,5 @@ if __name__ == "__main__":
     )
 
     print("✅ Magic assistant ready!")
+    print("🔗 Chat endpoint: http://localhost:5001/chat")
     magic_app.run(port=5001)

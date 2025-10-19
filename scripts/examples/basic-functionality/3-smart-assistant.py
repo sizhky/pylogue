@@ -45,4 +45,5 @@ if __name__ == "__main__":
     )
 
     print("✅ Smart assistant ready!")
+    print("🔗 Chat endpoint: http://localhost:5001/chat")
     smart_app.run(port=5001)

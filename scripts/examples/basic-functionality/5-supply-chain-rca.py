@@ -74,4 +74,5 @@ if __name__ == "__main__":
     )
 
     print("✅ Supply chain assistant ready!")
+    print("🔗 Chat endpoint: http://localhost:5001/chat")
     supply_chain_app.run(port=5001)
