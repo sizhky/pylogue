@@ -37,16 +37,16 @@ renderer.render_message(msg)
 
 <div>
 
-<div style="
+<div class="chat-card" style="
         background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
-        width: 60%; align-self: center; 
-        text-align: right; border-radius: 1em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em 1em 0em 1em; 
         padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 Hello!
 
@@ -74,36 +74,48 @@ renderer.render_messages(messages)
 <div id="chat-cards" class="chat-cards"
 style="display: flex; flex-direction: column; gap: 10px;">
 
-    <div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em 1em 0em 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 Hi there!
 
 </div>
 
     </div>
-    <div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-start; 
+        text-align: left; border-radius: 1em 1em 1em 0em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️
 Assistant: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 Hello! How can I help?
 
 </div>
 
     </div>
-    <div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em 1em 0em 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 What’s the weather?
 
@@ -136,70 +148,10 @@ renderer.render_form()
 
 <div>
 
-<form enctype="multipart/form-data" ws-send id="form" style="display: flex; justify-content: center; margin-top: 20px; padding: 20px;" name="form">
+<form enctype="multipart/form-data" hx-ext="ws" ws-connect="/ws" ws-send id="form" style="display: flex; justify-content: center; margin-top: 20px; padding: 20px;" name="form">
 
 <input placeholder="Type a message..." autofocus id="msg" style="width: 60%; max-width: 600px; padding: 0.75em; font-size: 1em; border-radius: 0.5em" name="msg">
 </form>
-
-<script>if (window.htmx) htmx.process(document.body)</script>
-
-</div>
-
-``` python
-# Test complete interface
-renderer.render_chat_interface(messages=messages, title="My Custom Chat")
-```
-
-<div>
-
-<div>
-
-    <h1 style="text-align: center; padding: 1em;">My Custom Chat</h1>
-    <div id="chat-cards" class="chat-cards" style="display: flex; flex-direction: column; gap: 10px;">
-      <div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
-
-<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
-User: </u></span>
-
-<div class="marked" style="white-space: pre-wrap;">
-
-Hi there!
-
-</div>
-
-      </div>
-      <div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
-
-<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️
-Assistant: </u></span>
-
-<div class="marked" style="white-space: pre-wrap;">
-
-Hello! How can I help?
-
-</div>
-
-      </div>
-      <div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
-
-<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
-User: </u></span>
-
-<div class="marked" style="white-space: pre-wrap;">
-
-What’s the weather?
-
-</div>
-
-      </div>
-    </div>
-
-<form enctype="multipart/form-data" ws-send id="form" style="display: flex; justify-content: center; margin-top: 20px; padding: 20px;" name="form">
-
-<input placeholder="Type a message..." autofocus id="msg" style="width: 60%; max-width: 600px; padding: 0.75em; font-size: 1em; border-radius: 0.5em" name="msg">
-</form>
-
-</div>
 
 <script>if (window.htmx) htmx.process(document.body)</script>
 
@@ -223,36 +175,48 @@ custom_renderer.render_messages(messages)
 <div id="chat-cards" class="chat-cards"
 style="display: flex; flex-direction: column; gap: 10px;">
 
-    <div style="background: #482F00; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #482F00; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em 1em 0em 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>👤
 User: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 Hi there!
 
 </div>
 
     </div>
-    <div style="background: #005460; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #005460; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-start; 
+        text-align: left; border-radius: 1em 1em 1em 0em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🤖
 Assistant: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 Hello! How can I help?
 
 </div>
 
     </div>
-    <div style="background: #482F00; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #482F00; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em 1em 0em 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>👤
 User: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 What’s the weather?
 

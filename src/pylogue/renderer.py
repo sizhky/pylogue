@@ -41,7 +41,7 @@ class ChatRenderer:
             "font-size: 1em; border-radius: 0.5em"
         )
         self.chat_container_style = chat_container_style or (
-            "display: flex; flex-direction: column; gap: 10px;"
+            "display: flex; flex-direction: column; gap: 1em; margin: 3em;"
         )
 
     def render_message(self, message: Message) -> Any:
@@ -58,7 +58,18 @@ class ChatRenderer:
         Returns:
             FastHTML Div containing all rendered messages
         """
+        # Add mobile-responsive margin CSS
+        mobile_margin_css = """
+        @media (max-width: 768px) {
+            .chat-cards {
+                margin: 1em !important;
+            }
+        }
+        """
+
         return Div(
+            Style(self.card.get_mobile_styles()),
+            Style(mobile_margin_css),
             *[self.render_message(msg) for msg in messages],
             id=self.CHAT_DIV_ID,
             cls="chat-cards",

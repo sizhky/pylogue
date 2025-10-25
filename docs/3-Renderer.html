@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Create your app – Pylogue</title>
+<title>renderer – Pylogue</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -105,10 +105,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="Create your app – Pylogue">
+<meta property="og:title" content="Pylogue">
 <meta property="og:description" content="A Chatbot UI build for Pydantic-AI agents">
 <meta property="og:site_name" content="Pylogue">
-<meta name="twitter:title" content="Create your app – Pylogue">
+<meta name="twitter:title" content="Pylogue">
 <meta name="twitter:description" content="A Chatbot UI build for Pydantic-AI agents">
 <meta name="twitter:card" content="summary">
 </head>
@@ -134,7 +134,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./4-chatapp.html">Create your app</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./3-Renderer.html">Presentation Layer</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -172,13 +172,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./3-Renderer.html" class="sidebar-item-text sidebar-link">
+  <a href="./3-Renderer.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Presentation Layer</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./4-chatapp.html" class="sidebar-item-text sidebar-link active">
+  <a href="./4-chatapp.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Create your app</span></a>
   </div>
 </li>
@@ -204,266 +204,190 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#chatapp---full-dependency-injection-architecture" id="toc-chatapp---full-dependency-injection-architecture" class="nav-link active" data-scroll-target="#chatapp---full-dependency-injection-architecture">ChatApp - Full Dependency Injection Architecture</a>
+  <li><a href="#presentation-layer" id="toc-presentation-layer" class="nav-link active" data-scroll-target="#presentation-layer">Presentation Layer</a>
   <ul class="collapse">
-  <li><a href="#chatappconfig" id="toc-chatappconfig" class="nav-link" data-scroll-target="#chatappconfig">ChatAppConfig</a></li>
-  <li><a href="#chatapp" id="toc-chatapp" class="nav-link" data-scroll-target="#chatapp">ChatApp</a></li>
+  <li><a href="#chatrenderer" id="toc-chatrenderer" class="nav-link" data-scroll-target="#chatrenderer">ChatRenderer</a></li>
   </ul></li>
-  <li><a href="#factory-functions-for-easy-setup" id="toc-factory-functions-for-easy-setup" class="nav-link" data-scroll-target="#factory-functions-for-easy-setup">Factory Functions for Easy Setup</a>
-  <ul class="collapse">
-  <li><a href="#create_default_chat_app" id="toc-create_default_chat_app" class="nav-link" data-scroll-target="#create_default_chat_app">create_default_chat_app</a></li>
-  </ul></li>
-  <li><a href="#example-creating-a-chat-app" id="toc-example-creating-a-chat-app" class="nav-link" data-scroll-target="#example-creating-a-chat-app">Example: Creating a Chat App</a>
-  <ul class="collapse">
-  <li><a href="#example_responder" id="toc-example_responder" class="nav-link" data-scroll-target="#example_responder">example_responder</a></li>
-  </ul></li>
-  <li><a href="#testing-individual-components" id="toc-testing-individual-components" class="nav-link" data-scroll-target="#testing-individual-components">Testing Individual Components</a></li>
+  <li><a href="#test-the-renderer" id="toc-test-the-renderer" class="nav-link" data-scroll-target="#test-the-renderer">Test the Renderer</a></li>
   </ul>
-<div class="toc-actions"><ul><li><a href="https://github.com/sizhky/pylogue.git/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="4-chatapp.html.md"><i class="bi bi-file-code"></i>CommonMark</a></li></ul></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/sizhky/pylogue.git/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="3-Renderer.md"><i class="bi bi-file-code"></i>CommonMark</a></li></ul></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
-
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Create your app</h1>
-</div>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
 
 
-
-<div class="quarto-title-meta">
-
-    
-  
-    
-  </div>
-  
-
-
-</header>
 
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<section id="chatapp---full-dependency-injection-architecture" class="level2">
-<h2 class="anchored" data-anchor-id="chatapp---full-dependency-injection-architecture">ChatApp - Full Dependency Injection Architecture</h2>
-<p>This module provides a complete chat application with: - FastHTML + WebSocket integration - Spinner/loading states - Full dependency injection - Customizable components</p>
+<section id="presentation-layer" class="level2">
+<h2 class="anchored" data-anchor-id="presentation-layer">Presentation Layer</h2>
+<p>This module provides rendering components for the chat interface.</p>
 <hr>
-<section id="chatappconfig" class="level3">
-<h3 class="anchored" data-anchor-id="chatappconfig">ChatAppConfig</h3>
+<section id="chatrenderer" class="level3">
+<h3 class="anchored" data-anchor-id="chatrenderer">ChatRenderer</h3>
 <blockquote class="blockquote">
-<pre><code> ChatAppConfig (app_title:str='Chat Application', page_title:str='Chat', i
-                nitial_messages_factory:Optional[Callable[[],List[pylogue.
-                session.Message]]]=None, bg_color:str='#1a1a1a',
-                header_style:str='text-align: center; padding: 1em; color:
-                white;', container_style:Optional[str]=None,
-                ws_endpoint:str='/ws', markdown_enabled:bool=True,
-                syntax_highlighting:bool=True,
-                highlight_langs:List[str]=&lt;factory&gt;,
-                spinner_css:Optional[str]=None)</code></pre>
+<pre><code> ChatRenderer (card:Optional[pylogue.cards.ChatCard]=None,
+               input_placeholder:str='Type a message...',
+               input_style:Optional[str]=None,
+               chat_container_style:Optional[str]=None,
+               ws_endpoint:str='/ws')</code></pre>
 </blockquote>
-<p><em>Configuration for ChatApp.</em></p>
-<hr>
-</section>
-<section id="chatapp" class="level3">
-<h3 class="anchored" data-anchor-id="chatapp">ChatApp</h3>
-<blockquote class="blockquote">
-<pre><code> ChatApp (session_manager:pylogue.session.SessionManager,
-          chat_service:pylogue.service.ChatService,
-          renderer:pylogue.renderer.ChatRenderer,
-          config:Optional[__main__.ChatAppConfig]=None)</code></pre>
-</blockquote>
-<p><em>Main chat application composing all components.</em></p>
+<p><em>Renders chat components with customizable styling.</em></p>
 </section>
 </section>
-<section id="factory-functions-for-easy-setup" class="level2">
-<h2 class="anchored" data-anchor-id="factory-functions-for-easy-setup">Factory Functions for Easy Setup</h2>
-<hr>
-<section id="create_default_chat_app" class="level3">
-<h3 class="anchored" data-anchor-id="create_default_chat_app">create_default_chat_app</h3>
-<blockquote class="blockquote">
-<pre><code> create_default_chat_app (responder:pylogue.service.Responder,
-                          config:Optional[__main__.ChatAppConfig]=None,
-                          card:Optional[pylogue.cards.ChatCard]=None, sess
-                          ion_manager:Optional[pylogue.session.SessionMana
-                          ger]=None, error_handler:Optional[pylogue.servic
-                          e.ErrorHandler]=None,
-                          context_provider:Optional[Callable]=None)</code></pre>
-</blockquote>
-<p>*Factory function to create a ChatApp with sensible defaults.</p>
-<p>Args: responder: The AI/LLM responder function config: Optional app configuration card: Optional custom ChatCard for styling session_manager: Optional custom session manager error_handler: Optional custom error handler context_provider: Optional context provider for responder</p>
-<p>Returns: Configured ChatApp instance*</p>
-</section>
-</section>
-<section id="example-creating-a-chat-app" class="level2">
-<h2 class="anchored" data-anchor-id="example-creating-a-chat-app">Example: Creating a Chat App</h2>
-<hr>
-<section id="example_responder" class="level3">
-<h3 class="anchored" data-anchor-id="example_responder">example_responder</h3>
-<blockquote class="blockquote">
-<pre><code> example_responder (message:str, context=None)</code></pre>
-</blockquote>
-<p><em>Example echo responder with latency.</em></p>
-<div id="ddd562cb" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example 1: Minimal setup with defaults</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> create_default_chat_app(responder<span class="op">=</span>example_responder)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># To run: app.run()</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"✅ Created default chat app"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>✅ Created default chat app</code></pre>
+<section id="test-the-renderer" class="level2">
+<h2 class="anchored" data-anchor-id="test-the-renderer">Test the Renderer</h2>
+<div id="ebfcae27" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fasthtml.jupyter <span class="im">import</span> render_ft</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>render_ft()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</div>
-<div id="3fba3a5b" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example 2: Custom configuration</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>custom_config <span class="op">=</span> ChatAppConfig(</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    app_title<span class="op">=</span><span class="st">"My AI Assistant"</span>,</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    page_title<span class="op">=</span><span class="st">"AI Chat"</span>,</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    bg_color<span class="op">=</span><span class="st">"#0a0a0a"</span>,</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    markdown_enabled<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    syntax_highlighting<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom card styling</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>custom_card <span class="op">=</span> ChatCard(</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    user_color<span class="op">=</span><span class="st">"#2d4a3e"</span>,</span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    assistant_color<span class="op">=</span><span class="st">"#3d2a4a"</span>,</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    user_emoji<span class="op">=</span><span class="st">"👤"</span>,</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    assistant_emoji<span class="op">=</span><span class="st">"🤖"</span>,</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    font_size<span class="op">=</span><span class="st">"1.2em"</span>,</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> create_default_chat_app(</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    responder<span class="op">=</span>example_responder, config<span class="op">=</span>custom_config, card<span class="op">=</span>custom_card</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"✅ Created custom styled chat app"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>✅ Created custom styled chat app</code></pre>
-</div>
-</div>
-<div id="dc1e7326" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example 3: Full DI with custom components</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pylogue.service <span class="im">import</span> ContextAwareResponder</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom responder that uses history</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>context_responder <span class="op">=</span> ContextAwareResponder(max_history<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom context provider</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> history_context_provider(session: ChatSession):</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Provide last N messages as context."""</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    messages <span class="op">=</span> session.get_messages()</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> messages[<span class="op">-</span><span class="dv">5</span>:] <span class="cf">if</span> <span class="bu">len</span>(messages) <span class="op">&gt;</span> <span class="dv">5</span> <span class="cf">else</span> messages</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom session manager (could be Redis, DB, etc.)</span></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>custom_session_manager <span class="op">=</span> InMemorySessionManager()</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Assemble with full DI</span></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>chat_service <span class="op">=</span> ChatService(</span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    responder<span class="op">=</span>context_responder, context_provider<span class="op">=</span>history_context_provider</span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>renderer <span class="op">=</span> ChatRenderer(card<span class="op">=</span>ChatCard(user_color<span class="op">=</span><span class="st">"#1a3a2a"</span>, assistant_color<span class="op">=</span><span class="st">"#3a1a2a"</span>))</span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> ChatAppConfig(</span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    app_title<span class="op">=</span><span class="st">"Context-Aware Assistant"</span>,</span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    initial_messages_factory<span class="op">=</span><span class="kw">lambda</span>: [</span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>        Message(role<span class="op">=</span><span class="st">"Assistant"</span>, content<span class="op">=</span><span class="st">"Hello! I remember our conversation history."</span>)</span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> ChatApp(</span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    session_manager<span class="op">=</span>custom_session_manager,</span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    chat_service<span class="op">=</span>chat_service,</span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    renderer<span class="op">=</span>renderer,</span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span>config,</span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"✅ Created fully customized DI chat app"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>✅ Created fully customized DI chat app</code></pre>
-</div>
-</div>
-</section>
-</section>
-<section id="testing-individual-components" class="level2">
-<h2 class="anchored" data-anchor-id="testing-individual-components">Testing Individual Components</h2>
-<div id="19cb6e39" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test session management</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>manager <span class="op">=</span> InMemorySessionManager()</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>session <span class="op">=</span> manager.create_session(<span class="st">"test-123"</span>)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>session.add_message(<span class="st">"User"</span>, <span class="st">"Hello"</span>)</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Session messages: </span><span class="sc">{</span>session<span class="sc">.</span>get_message_dicts()<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Session messages: [{'role': 'User', 'content': 'Hello', 'id': 'aa7212ac-7c89-4b42-9668-e462b6d73e89'}]</code></pre>
-</div>
-</div>
-<div id="dc6c11b5" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test chat service</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pylogue.service <span class="im">import</span> ChatService</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>service <span class="op">=</span> ChatService(responder<span class="op">=</span>example_responder)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> <span class="cf">await</span> service.process_message(<span class="st">"Test message"</span>)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Service response: </span><span class="sc">{</span>response<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Service response: Echo: Test message</code></pre>
-</div>
-</div>
-<div id="312d9541" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test renderer with messages</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fasthtml.jupyter <span class="im">import</span> render_ft</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>render_ft()</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>messages <span class="op">=</span> [</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    Message(role<span class="op">=</span><span class="st">"User"</span>, content<span class="op">=</span><span class="st">"Hello!"</span>),</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    Message(role<span class="op">=</span><span class="st">"Assistant"</span>, content<span class="op">=</span><span class="st">"Hi there! How can I help?"</span>),</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    Message(role<span class="op">=</span><span class="st">"Assistant"</span>, content<span class="op">=</span><span class="st">""</span>, pending<span class="op">=</span><span class="va">True</span>),</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>renderer <span class="op">=</span> ChatRenderer()</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>renderer.render_messages(messages)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="c2d68b02" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test basic rendering</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pylogue.session <span class="im">import</span> Message</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>renderer <span class="op">=</span> ChatRenderer()</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>msg <span class="op">=</span> Message(role<span class="op">=</span><span class="st">"User"</span>, content<span class="op">=</span><span class="st">"Hello!"</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>renderer.render_message(msg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display cell-output-markdown">
 <div>
-<div id="chat-cards" class="chat-cards" style="display: flex; flex-direction: column; gap: 10px;">
-<pre><code>&lt;div style="
-    background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
-    width: 60%; align-self: center; 
-    text-align: right; border-radius: 1em; 
-    padding: 1.25em"&gt;</code></pre>
+<div class="chat-card" style="
+        background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em 1em 0em 1em; 
+        padding: 1.25em">
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️ User: </u></span>
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 Hello!
-</div>
-<pre><code>&lt;/div&gt;
-&lt;div style="
-    background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
-    width: 60%; align-self: center; 
-    text-align: left; border-radius: 1em; 
-    padding: 1.25em"&gt;</code></pre>
-<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️ Assistant: </u></span>
-<div class="marked" style="white-space: pre-wrap;">
-Hi there! How can I help?
-</div>
-<pre><code>&lt;/div&gt;
-&lt;div style="
-    background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
-    width: 60%; align-self: center; 
-    text-align: left; border-radius: 1em; 
-    padding: 1.25em"&gt;</code></pre>
-🕵️‍♂️ Assistant: <span class="spinner"></span>
 </div>
 </div>
 <script>if (window.htmx) htmx.process(document.body)</script>
 </div>
 </div>
-</section></main></div>
+</div>
+<div id="95fe54f7" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test message list rendering</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>messages <span class="op">=</span> [</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    Message(role<span class="op">=</span><span class="st">"User"</span>, content<span class="op">=</span><span class="st">"Hi there!"</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    Message(role<span class="op">=</span><span class="st">"Assistant"</span>, content<span class="op">=</span><span class="st">"Hello! How can I help?"</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    Message(role<span class="op">=</span><span class="st">"User"</span>, content<span class="op">=</span><span class="st">"What's the weather?"</span>),</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>renderer.render_messages(messages)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="6">
+<div>
+<div id="chat-cards" class="chat-cards" style="display: flex; flex-direction: column; gap: 10px;">
+<pre><code>&lt;div style="
+    background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-end; 
+    text-align: right; border-radius: 1em 1em 0em 1em; 
+    padding: 1.25em"&gt;</code></pre>
+<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️ User: </u></span>
+<div class="marked" style="white-space: normal;">
+Hi there!
+</div>
+<pre><code>&lt;/div&gt;
+&lt;div style="
+    background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-start; 
+    text-align: left; border-radius: 1em 1em 1em 0em; 
+    padding: 1.25em"&gt;</code></pre>
+<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️ Assistant: </u></span>
+<div class="marked" style="white-space: normal;">
+Hello! How can I help?
+</div>
+<pre><code>&lt;/div&gt;
+&lt;div style="
+    background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-end; 
+    text-align: right; border-radius: 1em 1em 0em 1em; 
+    padding: 1.25em"&gt;</code></pre>
+<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️ User: </u></span>
+<div class="marked" style="white-space: normal;">
+What’s the weather?
+</div>
+<pre><code>&lt;/div&gt;</code></pre>
+</div>
+<script>if (window.htmx) htmx.process(document.body)</script>
+</div>
+</div>
+</div>
+<div id="15183e77" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test input rendering</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>renderer.render_input()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="7">
+<div>
+<input placeholder="Type a message..." autofocus="" id="msg" style="width: 60%; max-width: 600px; padding: 0.75em; font-size: 1em; border-radius: 0.5em" name="msg">
+<script>if (window.htmx) htmx.process(document.body)</script>
+</div>
+</div>
+</div>
+<div id="8cd80c29" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test full form</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>renderer.render_form()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="8">
+<div>
+<form enctype="multipart/form-data" hx-ext="ws" ws-connect="/ws" ws-send="" id="form" style="display: flex; justify-content: center; margin-top: 20px; padding: 20px;" name="form">
+<input placeholder="Type a message..." autofocus="" id="msg" style="width: 60%; max-width: 600px; padding: 0.75em; font-size: 1em; border-radius: 0.5em" name="msg">
+</form>
+<script>if (window.htmx) htmx.process(document.body)</script>
+</div>
+</div>
+</div>
+<div id="1229137b" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test with custom card styling</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>custom_card <span class="op">=</span> ChatCard(</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    user_color<span class="op">=</span><span class="st">"#482F00"</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    assistant_color<span class="op">=</span><span class="st">"#005460"</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    user_emoji<span class="op">=</span><span class="st">"👤"</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    assistant_emoji<span class="op">=</span><span class="st">"🤖"</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>custom_renderer <span class="op">=</span> ChatRenderer(card<span class="op">=</span>custom_card)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>custom_renderer.render_messages(messages)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="9">
+<div>
+<div id="chat-cards" class="chat-cards" style="display: flex; flex-direction: column; gap: 10px;">
+<pre><code>&lt;div style="
+    background: #482F00; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-end; 
+    text-align: right; border-radius: 1em 1em 0em 1em; 
+    padding: 1.25em"&gt;</code></pre>
+<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>👤 User: </u></span>
+<div class="marked" style="white-space: normal;">
+Hi there!
+</div>
+<pre><code>&lt;/div&gt;
+&lt;div style="
+    background: #005460; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-start; 
+    text-align: left; border-radius: 1em 1em 1em 0em; 
+    padding: 1.25em"&gt;</code></pre>
+<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🤖 Assistant: </u></span>
+<div class="marked" style="white-space: normal;">
+Hello! How can I help?
+</div>
+<pre><code>&lt;/div&gt;
+&lt;div style="
+    background: #482F00; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-end; 
+    text-align: right; border-radius: 1em 1em 0em 1em; 
+    padding: 1.25em"&gt;</code></pre>
+<span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>👤 User: </u></span>
+<div class="marked" style="white-space: normal;">
+What’s the weather?
+</div>
+<pre><code>&lt;/div&gt;</code></pre>
+</div>
+<script>if (window.htmx) htmx.process(document.body)</script>
+</div>
+</div>
+</div>
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/sizhky/pylogue.git/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer>
 
+</section>
 
- <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
@@ -863,9 +787,9 @@ Hi there! How can I help?
     }
   });
   </script>
- <!-- /content -->
+</div> <!-- /content -->
 
 
 
 
-</body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/sizhky/pylogue.git/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

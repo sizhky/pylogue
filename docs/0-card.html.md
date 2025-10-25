@@ -15,12 +15,13 @@ render_ft()
 
 >  ChatCard (user_color:str='#1C0069', assistant_color:str='#004539',
 >                user_emoji:str='🗣️', assistant_emoji:str='🕵️\u200d♂️',
->                width:str='60%', font_size:str='1.5em', padding:str='1.25em',
->                border_radius:str='1em', user_align:str='right',
->                assistant_align:str='left', user_self_align:str='center',
->                assistant_self_align:str='center', role_font_weight:str='bold',
->                role_font_size:str='1.1em', role_margin_bottom:str='8px',
->                content_white_space:str='pre-wrap',
+>                max_width:str='80%', card_max_width:str='60%',
+>                font_size:str='1.5em', mobile_font_size:str='16px',
+>                padding:str='1.25em', user_align:str='right',
+>                assistant_align:str='left', user_self_align:str='flex-end',
+>                assistant_self_align:str='flex-start',
+>                role_font_weight:str='bold', role_font_size:str='1.1em',
+>                role_margin_bottom:str='8px', content_white_space:str='normal',
 >                spinner_class:str='spinner')
 
 *Initialize self. See help(type(self)) for accurate signature.*
@@ -34,7 +35,11 @@ chat_card(user_msg)
 
 <div>
 
-<div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+<div style="
+        background: #272727; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>
@@ -58,7 +63,11 @@ chat_card(asst_msg)
 
 <div>
 
-<div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
+<div style="
+        background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-start; 
+        text-align: left; border-radius: 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️
 Assistant: </u></span>
@@ -91,7 +100,11 @@ render_chat_list([user_msg, asst_msg], chat_card)
 <div id="chat-cards" class="chat-cards"
 style="display: flex; flex-direction: column; gap: 10px;">
 
-    <div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #272727; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>
@@ -103,7 +116,11 @@ Hello, how are you?
 </div>
 
     </div>
-    <div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
+    <div style="
+        background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-start; 
+        text-align: left; border-radius: 1em; 
+        padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️
 Assistant: </u></span>

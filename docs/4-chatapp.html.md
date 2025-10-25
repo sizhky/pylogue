@@ -18,8 +18,8 @@ injection - Customizable components
 >                     session.Message]]]=None, bg_color:str='#1a1a1a',
 >                     header_style:str='text-align: center; padding: 1em; color:
 >                     white;', container_style:Optional[str]=None,
->                     ws_endpoint:str='/ws', markdown_enabled:bool=True,
->                     syntax_highlighting:bool=True,
+>                     ws_endpoint:str='/ws', chat_endpoint:str='/chat',
+>                     markdown_enabled:bool=True, syntax_highlighting:bool=True,
 >                     highlight_langs:List[str]=<factory>,
 >                     spinner_css:Optional[str]=None)
 
@@ -194,44 +194,58 @@ renderer.render_messages(messages)
 <div>
 
 <div id="chat-cards" class="chat-cards"
-style="display: flex; flex-direction: column; gap: 10px;">
+style="display: flex; flex-direction: column; gap: 1em; margin: 3em;">
 
-    <div style="
+    <style>
+        @media (max-width: 768px) {
+            .chat-card {
+                font-size: 16px !important;
+            }
+        }
+        </style>
+    <style>
+        @media (max-width: 768px) {
+            .chat-cards {
+                margin: 1em !important;
+            }
+        }
+        </style>
+    <div class="chat-card" style="
         background: #1C0069; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
-        width: 60%; align-self: center; 
-        text-align: right; border-radius: 1em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em 1em 0em 1em; 
         padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️
 User: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 Hello!
 
 </div>
 
     </div>
-    <div style="
+    <div class="chat-card" style="
         background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
-        width: 60%; align-self: center; 
-        text-align: left; border-radius: 1em; 
+        max-width: min(60%, 80%); align-self: flex-start; 
+        text-align: left; border-radius: 1em 1em 1em 0em; 
         padding: 1.25em">
 
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️
 Assistant: </u></span>
 
-<div class="marked" style="white-space: pre-wrap;">
+<div class="marked" style="white-space: normal;">
 
 Hi there! How can I help?
 
 </div>
 
     </div>
-    <div style="
+    <div class="chat-card" style="
         background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
-        width: 60%; align-self: center; 
-        text-align: left; border-radius: 1em; 
+        max-width: min(60%, 80%); align-self: flex-start; 
+        text-align: left; border-radius: 1em 1em 1em 0em; 
         padding: 1.25em">
 
 🕵️‍♂️ Assistant: <span class="spinner"></span>

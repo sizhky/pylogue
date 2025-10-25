@@ -3,12 +3,20 @@ from pylogue.chatapp import create_default_chat_app
 import logfire
 from pydantic_ai import Agent
 
-logfire.configure(token="your-token-here")
+logfire.configure(
+    token="pylf_v1_us_8nPSf615mpVmStPXQ7KNRpTQHzPGhHJ5JtW8BQYF8Y9Q",
+    environment="development",
+    service_name="kitchen-helper-bot",
+)
 logfire.instrument_pydantic_ai()
 
-agent = Agent(
+system_prompt = """
+"You talk only as much as needed and not a word more.
+"""
+
+kitchen_helper_agent = Agent(
     "google-gla:gemini-2.5-flash",
-    system_prompt="You are a staunch stoic which is also your personality and usually talk as less as possible. You try to shoe-horn in some motivational quotes from famous stoics like Marcus Aurelius, Seneca, Epictetus etc. in your responses.",
+    system_prompt=system_prompt,
 )
 
 
@@ -65,7 +73,7 @@ class PydanticAIAgentResponder:
 
 if __name__ == "__main__":
     # Create streaming responder
-    responder = PydanticAIStreamingResponder(agent=agent)
+    responder = PydanticAIStreamingResponder(agent=kitchen_helper_agent)
 
     # Create chat app with streaming support
     app = create_default_chat_app(responder=responder)

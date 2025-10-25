@@ -14,18 +14,19 @@ class ChatCard:
         assistant_color: str = "#004539",
         user_emoji: str = "🗣️",
         assistant_emoji: str = "🕵️‍♂️",
-        width: str = "60%",
+        max_width: str = "80%",
+        card_max_width: str = "60%",
         font_size: str = "1.5em",
+        mobile_font_size: str = "16px",
         padding: str = "1.25em",
-        border_radius: str = "1em",
         user_align: str = "right",
         assistant_align: str = "left",
-        user_self_align: str = "center",
-        assistant_self_align: str = "center",
+        user_self_align: str = "flex-end",
+        assistant_self_align: str = "flex-start",
         role_font_weight: str = "bold",
         role_font_size: str = "1.1em",
         role_margin_bottom: str = "8px",
-        content_white_space: str = "pre-wrap",
+        content_white_space: str = "normal",
         spinner_class: str = "spinner",
     ):
         self.colors = {
@@ -40,11 +41,14 @@ class ChatCard:
             "Assistant": {"text": assistant_align, "self": assistant_self_align},
         }
 
+        self.border_radii = {"User": "1em 1em 0em 1em", "Assistant": "1em 1em 1em 0em"}
+
         # Style configuration
-        self.width = width
+        self.card_max_width = card_max_width
+        self.max_width = max_width
         self.font_size = font_size
+        self.mobile_font_size = mobile_font_size
         self.padding = padding
-        self.border_radius = border_radius
         self.role_font_weight = role_font_weight
         self.role_font_size = role_font_size
         self.role_margin_bottom = role_margin_bottom
@@ -54,8 +58,8 @@ class ChatCard:
         # Build style template
         self.style_template = f"""
         background: {{bg}}; color: {{text_color}}; padding: 10px; font-size: {self.font_size}; 
-        width: {self.width}; align-self: {{self_align}}; 
-        text-align: {{text_align}}; border-radius: {self.border_radius}; 
+        max-width: min({self.card_max_width}, {self.max_width}); align-self: {{self_align}}; 
+        text-align: {{text_align}}; border-radius: {{border_radius}}; 
         padding: {self.padding}"""
 
     def _get_text_color(self, bg_color: str) -> str:
@@ -89,11 +93,22 @@ class ChatCard:
             text_color=self._get_text_color(bg_color),
             self_align=self.alignments[role]["self"],
             text_align=self.alignments[role]["text"],
+            border_radius=self.border_radii[role],
         )
 
     def _get_role_style(self) -> str:
         """Generate CSS style string for role labels."""
         return f"font-weight: {self.role_font_weight}; font-size: {self.role_font_size}; display: block; margin-bottom: {self.role_margin_bottom};"
+
+    def get_mobile_styles(self) -> str:
+        """Generate CSS media query for mobile devices."""
+        return f"""
+        @media (max-width: 768px) {{
+            .chat-card {{
+                font-size: {self.mobile_font_size} !important;
+            }}
+        }}
+        """
 
     def render(self, data: dict):
         """
@@ -117,7 +132,7 @@ class ChatCard:
 
         if pending:
             spinner = Span(cls=self.spinner_class)
-            return Div(f"{emoji} {role}: ", spinner, style=style)
+            return Div(f"{emoji} {role}: ", spinner, style=style, cls="chat-card")
 
         # Add 'marked' class to enable markdown rendering
         return Div(
@@ -129,6 +144,7 @@ class ChatCard:
                 content, cls="marked", style=f"white-space: {self.content_white_space};"
             ),
             style=style,
+            cls="chat-card",
         )
 
     def __call__(self, data: dict):
@@ -141,6 +157,7 @@ CHAT_DIV_ID = "chat-cards"
 
 def render_chat_list(messages: List[Dict[str, str]], ChatCard: ChatCard):
     return Div(
+        Style(ChatCard.get_mobile_styles()),
         *[ChatCard(m) for m in messages],
         id=CHAT_DIV_ID,
         cls="chat-cards",

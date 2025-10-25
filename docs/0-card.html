@@ -244,23 +244,28 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <blockquote class="blockquote">
 <pre><code> ChatCard (user_color:str='#1C0069', assistant_color:str='#004539',
            user_emoji:str='🗣️', assistant_emoji:str='🕵️\u200d♂️',
-           width:str='60%', font_size:str='1.5em', padding:str='1.25em',
-           border_radius:str='1em', user_align:str='right',
-           assistant_align:str='left', user_self_align:str='center',
-           assistant_self_align:str='center', role_font_weight:str='bold',
-           role_font_size:str='1.1em', role_margin_bottom:str='8px',
-           content_white_space:str='pre-wrap',
+           max_width:str='80%', card_max_width:str='60%',
+           font_size:str='1.5em', mobile_font_size:str='16px',
+           padding:str='1.25em', user_align:str='right',
+           assistant_align:str='left', user_self_align:str='flex-end',
+           assistant_self_align:str='flex-start',
+           role_font_weight:str='bold', role_font_size:str='1.1em',
+           role_margin_bottom:str='8px', content_white_space:str='normal',
            spinner_class:str='spinner')</code></pre>
 </blockquote>
 <p><em>Initialize self. See help(type(self)) for accurate signature.</em></p>
-<div id="7f6c77a7" class="cell" data-execution_count="33">
+<div id="7f6c77a7" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test with default styling</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>chat_card <span class="op">=</span> ChatCard(user_color<span class="op">=</span><span class="st">"#272727"</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>user_msg <span class="op">=</span> {<span class="st">"role"</span>: <span class="st">"User"</span>, <span class="st">"content"</span>: <span class="st">"Hello, how are you?"</span>}</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>chat_card(user_msg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="33">
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="5">
 <div>
-<div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em">
+<div style="
+        background: #272727; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-end; 
+        text-align: right; border-radius: 1em; 
+        padding: 1.25em">
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️ User: </u></span>
 <div class="marked" style="white-space: pre-wrap;">
 Hello, how are you?
@@ -270,12 +275,16 @@ Hello, how are you?
 </div>
 </div>
 </div>
-<div id="1994e37e" class="cell" data-execution_count="34">
+<div id="1994e37e" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>asst_msg <span class="op">=</span> {<span class="st">"role"</span>: <span class="st">"Assistant"</span>, <span class="st">"content"</span>: <span class="st">"I'm doing well, thank you!"</span>}</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>chat_card(asst_msg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="34">
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="6">
 <div>
-<div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em">
+<div style="
+        background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+        max-width: min(60%, 80%); align-self: flex-start; 
+        text-align: left; border-radius: 1em; 
+        padding: 1.25em">
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️ Assistant: </u></span>
 <div class="marked" style="white-space: pre-wrap;">
 I’m doing well, thank you!
@@ -293,18 +302,26 @@ I’m doing well, thank you!
 <pre><code> render_chat_list (messages:List[Dict[str,str]],
                    ChatCard:__main__.ChatCard)</code></pre>
 </blockquote>
-<div id="87917dab" class="cell" data-execution_count="36">
+<div id="87917dab" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>render_chat_list([user_msg, asst_msg], chat_card)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="36">
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="8">
 <div>
 <div id="chat-cards" class="chat-cards" style="display: flex; flex-direction: column; gap: 10px;">
-<pre><code>&lt;div style="background: #272727; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: right; border-radius: 1em; padding: 1.25em"&gt;</code></pre>
+<pre><code>&lt;div style="
+    background: #272727; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-end; 
+    text-align: right; border-radius: 1em; 
+    padding: 1.25em"&gt;</code></pre>
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🗣️ User: </u></span>
 <div class="marked" style="white-space: pre-wrap;">
 Hello, how are you?
 </div>
 <pre><code>&lt;/div&gt;
-&lt;div style="background: #3B3B3B; padding: 10px; font-size: 1.5em; width: 60%; align-self: center; text-align: left; border-radius: 1em; padding: 1.25em"&gt;</code></pre>
+&lt;div style="
+    background: #004539; color: #FFFFFF; padding: 10px; font-size: 1.5em; 
+    max-width: min(60%, 80%); align-self: flex-start; 
+    text-align: left; border-radius: 1em; 
+    padding: 1.25em"&gt;</code></pre>
 <span style="font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 8px;"><u>🕵️‍♂️ Assistant: </u></span>
 <div class="marked" style="white-space: pre-wrap;">
 I’m doing well, thank you!
@@ -322,9 +339,9 @@ I’m doing well, thank you!
 <blockquote class="blockquote">
 <pre><code> mk_inp ()</code></pre>
 </blockquote>
-<div id="a96bc19c" class="cell" data-execution_count="38">
+<div id="a96bc19c" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>mk_inp()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="38">
+<div class="cell-output cell-output-display cell-output-markdown" data-execution_count="10">
 <div>
 <input placeholder="Type a message..." autofocus="" id="msg" style="width: 60%; max-width: 600px; padding: 0.75em; font-size: 1em; border-radius: 0.5em" name="msg">
 <script>if (window.htmx) htmx.process(document.body)</script>

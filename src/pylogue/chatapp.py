@@ -121,6 +121,9 @@ class ChatApp:
         # Add spinner styles
         headers.append(Style(self.config.get_spinner_style()))
 
+        # Add mobile responsive styles from ChatCard
+        headers.append(Style(self.renderer.card.get_mobile_styles()))
+
         return FastHTML(exts="ws", hdrs=tuple(headers))
 
     def _get_initial_messages(self) -> List[Message]:
@@ -133,22 +136,24 @@ class ChatApp:
         """Register HTTP and WebSocket routes."""
 
         @self.app.route(self.config.chat_endpoint)
-        def home():
+        def chat():
             """Main chat interface."""
             initial_messages = self._get_initial_messages()
 
             container_style = self.config.container_style or (
                 f"font-family: monospace, sans-serif; margin: 0; padding: 0; "
-                f"background: {self.config.bg_color}; min-height: 100vh;"
             )
 
             return (
                 Title(self.config.page_title),
-                Div(
-                    H1(self.config.app_title, style=self.config.header_style),
-                    self.renderer.render_messages(initial_messages),
-                    self.renderer.render_form(),
-                    style=container_style,
+                Body(
+                    Div(
+                        H1(self.config.app_title, style=self.config.header_style),
+                        self.renderer.render_messages(initial_messages),
+                        self.renderer.render_form(),
+                        style=container_style,
+                    ),
+                    style="background-color: #000",
                 ),
             )
 
@@ -211,7 +216,7 @@ class ChatApp:
                     assistant_msg.id, content=full_response, pending=False
                 )
                 # Send updated message list to UI
-                print(f"📤 Sending chunk #{chunk_count}: {repr(chunk)}")  # Debug
+                # print(f"📤 Sending chunk #{chunk_count}: {repr(chunk)}")  # Debug
                 await send(self.renderer.render_messages(session.get_messages()))
 
         except Exception as e:
