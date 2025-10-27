@@ -6,6 +6,7 @@ __all__ = ['spinner_style', 'user_messages', 'echo_responder', 'get_initial_mess
 # %% ../../nbs/1-Chat.ipynb 1
 from fasthtml.common import *
 from .cards import ChatCard, render_chat_list, mk_inp
+from .design_system import get_color, get_spacing
 
 # %% ../../nbs/1-Chat.ipynb 2
 async def echo_responder(text: str) -> str:
@@ -15,20 +16,20 @@ async def echo_responder(text: str) -> str:
 
 
 spinner_style = Style(
-    """
-    .spinner {
+    f"""
+    .spinner {{
         display: inline-block;
         width: 20px;
         height: 20px;
-        border: 3px solid rgba(0, 0, 0, 0.1);
-        border-top-color: #333;
+        border: 3px solid {get_color("spinner_light")};
+        border-top-color: {get_color("light_text")};
         border-radius: 50%;
         animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
+    }}
+
+    @keyframes spin {{
+        to {{ transform: rotate(360deg); }}
+    }}
     """
 )
 
@@ -63,24 +64,25 @@ def create_chat_app(rt, responder=None):
             MarkdownJS(),
             HighlightJS(langs=["python", "javascript", "html", "css"]),
             spinner_style,
-            confirm_script,
         ),
     )
     rt = app.route
     responder = echo_responder if responder is None else responder
+    bg_color = get_color("dark_bg")
 
     @rt("/")
     def home():
         return (
             Title("Supply Chain Analyst Chat"),
+            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             Div(
-                H1("Supply Chain RCA", style="text-align: center; padding: 1em;"),
+                H1("Supply Chain RCA", style=f"text-align: center; padding: {get_spacing('md')};"),
                 render_chat_list(get_initial_messages()),
                 Form(
                     mk_inp(),
                     id="form",
                     ws_send=True,
-                    style="display: flex; justify-content: center; margin-top: 20px; padding: 20px;",
+                    style=f"display: flex; justify-content: center; margin-top: {get_spacing('lg')}; padding: {get_spacing('lg')};",
                 ),
                 hx_ext="ws",
                 ws_connect="/ws",
