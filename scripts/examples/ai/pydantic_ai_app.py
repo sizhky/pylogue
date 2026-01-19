@@ -16,17 +16,14 @@ system_prompt = """
 You talk only as much as needed and not a word more.
 """
 
-kitchen_helper_agent = Agent(
-    "openai:gpt-4o-mini",
-    system_prompt=system_prompt,
-)
-
-
 class PydanticAIStreamingResponder:
     """Streaming responder using Pydantic AI's run_stream."""
 
     def __init__(self, agent=None, agent_deps=None):
-        self.agent = agent if agent is not None else self.init_agent()
+        self.agent = agent if agent is not None else Agent(
+            "openai:gpt-4o-mini",
+            system_prompt=system_prompt,
+        )
         self.agent_deps = agent_deps
         self.message_history = None
 
@@ -46,10 +43,10 @@ class PydanticAIStreamingResponder:
 
 
 def app_factory():
-    responder = PydanticAIStreamingResponder(agent=kitchen_helper_agent)
     return create_core_app(
-        responder=responder,
+        responder_factory=lambda: PydanticAIStreamingResponder(),
         tag_line="PYDANTIC AI",
+        tag_line_href="https://google.com",
         title="Pydantic AI Chat",
         subtitle="Streaming tokens from PydanticAI over WebSockets.",
     )

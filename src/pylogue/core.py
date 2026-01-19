@@ -217,13 +217,20 @@ def get_core_headers(include_markdown: bool = True):
 def register_routes(
     app,
     responder=None,
+    responder_factory=None,
     tag_line: str = "STREAMING DEMO",
     title: str = "Minimal Stream Chat",
     subtitle: str = "One question, one answer card. Response streams character-by-character.",
     base_path: str = "",
     inject_headers: bool = False,
     include_markdown: bool = True,
+    tag_line_href: str = "",
 ):
+    if responder_factory is None and responder is not None and hasattr(responder, "message_history"):
+        raise ValueError(
+            "Responder appears to be stateful (has message_history). "
+            "Pass responder_factory to create a fresh responder per connection."
+        )
     if base_path and not base_path.startswith("/"):
         base_path = f"/{base_path}"
     chat_path = f"{base_path}/" if base_path else "/"
@@ -233,11 +240,21 @@ def register_routes(
         for header in get_core_headers(include_markdown=include_markdown):
             app.hdrs = (*app.hdrs, header)
 
-    responder = responder or EchoResponder()
+    if responder_factory is None:
+        responder = responder or EchoResponder()
     sessions = {}
 
     @app.route(chat_path)
     def home():
+        tag_line_node = (
+            A(
+                tag_line,
+                href=tag_line_href,
+                cls="text-xs uppercase tracking-widest text-slate-500 hover:text-slate-700",
+            )
+            if tag_line_href
+            else P(tag_line, cls="text-xs uppercase tracking-widest text-slate-500")
+        )
         return (
             Title(title),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
@@ -245,7 +262,7 @@ def register_routes(
                 Container(
                     Div(
                         Div(
-                            P(tag_line, cls="text-xs uppercase tracking-widest text-slate-500"),
+                            tag_line_node,
                             H1(title, cls="text-3xl md:text-4xl font-semibold text-slate-900"),
                             P(subtitle, cls=TextPresets.muted_sm),
                             cls="space-y-2",
@@ -282,15 +299,33 @@ def register_routes(
             ),
         )
 
-    @app.ws(ws_path)
+    def _on_connect(ws, send):
+        ws_id = id(ws)
+        sessions[ws_id] = {
+            "cards": [],
+            "responder": responder_factory() if responder_factory else responder,
+        }
+
+    def _on_disconnect(ws):
+        sessions.pop(id(ws), None)
+
+    @app.ws(ws_path, conn=_on_connect, disconn=_on_disconnect)
     async def ws_handler(msg: str, send, ws):
         ws_id = id(ws)
-        cards = sessions.setdefault(ws_id, [])
+        session = sessions.get(ws_id)
+        if session is None:
+            session = {
+                "cards": [],
+                "responder": responder_factory() if responder_factory else responder,
+            }
+            sessions[ws_id] = session
+        cards = session["cards"]
+        session_responder = session["responder"]
 
         cards.append({"id": str(len(cards)), "question": msg, "answer": ""})
         await send(render_cards(cards))
 
-        result = responder(msg)
+        result = session_responder(msg)
         if inspect.isasyncgen(result):
             async for chunk in result:
                 cards[-1]["answer"] += str(chunk)
@@ -307,10 +342,12 @@ def register_routes(
 
 def main(
     responder=None,
+    responder_factory=None,
     tag_line: str = "STREAMING DEMO",
     title: str = "Minimal Stream Chat",
     subtitle: str = "One question, one answer card. Response streams character-by-character.",
     include_markdown: bool = True,
+    tag_line_href: str = "",
 ):
     if responder is None:
         responder = EchoResponder()
@@ -319,9 +356,11 @@ def main(
     register_routes(
         app,
         responder=responder,
+        responder_factory=responder_factory,
         tag_line=tag_line,
         title=title,
         subtitle=subtitle,
+        tag_line_href=tag_line_href,
         base_path="",
     )
     return app
