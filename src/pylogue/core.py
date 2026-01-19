@@ -47,6 +47,80 @@ def render_cards(cards):
     )
 
 
+def register_routes(
+    app,
+    responder=None,
+    tag_line: str = "STREAMING DEMO",
+    title: str = "Minimal Stream Chat",
+    subtitle: str = "One question, one answer card. Response streams character-by-character.",
+    base_path: str = "",
+):
+    if base_path and not base_path.startswith("/"):
+        base_path = f"/{base_path}"
+    chat_path = f"{base_path}/" if base_path else "/"
+    ws_path = f"{base_path}/ws" if base_path else "/ws"
+
+    responder = responder or EchoResponder()
+    sessions = {}
+
+    @app.route(chat_path)
+    def home():
+        return (
+            Title(title),
+            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+            Body(
+                Container(
+                    Div(
+                        Div(
+                            P(tag_line, cls="text-xs uppercase tracking-widest text-slate-500"),
+                            H1(title, cls="text-3xl md:text-4xl font-semibold text-slate-900"),
+                            P(subtitle, cls=TextPresets.muted_sm),
+                            cls="space-y-2",
+                        ),
+                        Div(
+                            Div(render_cards([])),
+                            Form(
+                                render_input(),
+                                Button("Send", cls=ButtonT.primary, type="submit"),
+                                id="form",
+                                hx_ext="ws",
+                                ws_connect=ws_path,
+                                ws_send=True,
+                                cls="flex flex-col sm:flex-row gap-3 items-stretch pt-4",
+                            ),
+                            cls="chat-panel space-y-4",
+                        ),
+                        cls="space-y-6",
+                    ),
+                    cls=(ContainerT.lg, "py-10"),
+                ),
+                cls="min-h-screen bg-slate-50 text-slate-900",
+            ),
+        )
+
+    @app.ws(ws_path)
+    async def ws_handler(msg: str, send, ws):
+        ws_id = id(ws)
+        cards = sessions.setdefault(ws_id, [])
+
+        cards.append({"question": msg, "answer": ""})
+        await send(render_cards(cards))
+
+        result = responder(msg)
+        if inspect.isasyncgen(result):
+            async for chunk in result:
+                cards[-1]["answer"] += str(chunk)
+                await send(render_cards(cards))
+        else:
+            if inspect.isawaitable(result):
+                result = await result
+            for ch in str(result):
+                cards[-1]["answer"] += ch
+                await send(render_cards(cards))
+
+        await send(render_input())
+
+
 def main(
     responder=None,
     tag_line: str = "STREAMING DEMO",
@@ -72,67 +146,14 @@ def main(
     )
 
     app = MUFastHTML(exts="ws", hdrs=tuple(headers), pico=False)
-    responder = responder or EchoResponder()
-
-    sessions = {}
-
-    @app.route("/")
-    def home():
-        return (
-            Title("Minimal Stream Chat"),
-            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            Body(
-                Container(
-                    Div(
-                        Div(
-                            P(tag_line, cls="text-xs uppercase tracking-widest text-slate-500"),
-                            H1(title, cls="text-3xl md:text-4xl font-semibold text-slate-900"),
-                            P(subtitle, cls=TextPresets.muted_sm),
-                            cls="space-y-2",
-                        ),
-                        Div(
-                            Div(render_cards([])),
-                            Form(
-                                render_input(),
-                                Button("Send", cls=ButtonT.primary, type="submit"),
-                                id="form",
-                                hx_ext="ws",
-                                ws_connect="/ws",
-                                ws_send=True,
-                                cls="flex flex-col sm:flex-row gap-3 items-stretch pt-4",
-                            ),
-                            cls="chat-panel space-y-4",
-                        ),
-                        cls="space-y-6",
-                    ),
-                    cls=(ContainerT.lg, "py-10"),
-                ),
-                cls="min-h-screen bg-slate-50 text-slate-900",
-            ),
-        )
-
-    @app.ws("/ws")
-    async def ws_handler(msg: str, send, ws):
-        ws_id = id(ws)
-        cards = sessions.setdefault(ws_id, [])
-
-        cards.append({"question": msg, "answer": ""})
-        await send(render_cards(cards))
-
-        result = responder(msg)
-        if inspect.isasyncgen(result):
-            async for chunk in result:
-                cards[-1]["answer"] += str(chunk)
-                await send(render_cards(cards))
-        else:
-            if inspect.isawaitable(result):
-                result = await result
-            for ch in str(result):
-                cards[-1]["answer"] += ch
-                await send(render_cards(cards))
-
-        await send(render_input())
-
+    register_routes(
+        app,
+        responder=responder,
+        tag_line=tag_line,
+        title=title,
+        subtitle=subtitle,
+        base_path="",
+    )
     return app
 
 
