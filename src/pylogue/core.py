@@ -36,7 +36,7 @@ def render_cards(cards):
         rows.append(
             Div(
                 P("Assistant", cls=(TextPresets.muted_sm, "text-left")),
-                Div(card["answer"] or "…", cls="text-base text-left"),
+                Div(card["answer"] or "…", cls="marked text-base text-left"),
                 cls="chat-row-block",
             )
         )
@@ -126,8 +126,13 @@ def main(
     tag_line: str = "STREAMING DEMO",
     title: str = "Minimal Stream Chat",
     subtitle: str = "One question, one answer card. Response streams character-by-character.",
+    include_markdown: bool = True,
 ):
+    if responder is None:
+        responder = EchoResponder()
     headers = list(Theme.slate.headers())
+    if include_markdown:
+        headers.append(MarkdownJS())
     headers.append(
         Style(
             """
