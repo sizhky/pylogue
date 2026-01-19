@@ -47,7 +47,12 @@ def render_cards(cards):
     )
 
 
-def main(responder=None):
+def main(
+    responder=None,
+    tag_line: str = "STREAMING DEMO",
+    title: str = "Minimal Stream Chat",
+    subtitle: str = "One question, one answer card. Response streams character-by-character.",
+):
     headers = list(Theme.slate.headers())
     headers.append(
         Style(
@@ -80,9 +85,9 @@ def main(responder=None):
                 Container(
                     Div(
                         Div(
-                            P("STREAMING DEMO", cls="text-xs uppercase tracking-widest text-slate-500"),
-                            H1("Minimal Stream Chat", cls="text-3xl md:text-4xl font-semibold text-slate-900"),
-                            P("One question, one answer card. Response streams character-by-character.", cls=TextPresets.muted_sm),
+                            P(tag_line, cls="text-xs uppercase tracking-widest text-slate-500"),
+                            H1(title, cls="text-3xl md:text-4xl font-semibold text-slate-900"),
+                            P(subtitle, cls=TextPresets.muted_sm),
                             cls="space-y-2",
                         ),
                         Div(
