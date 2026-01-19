@@ -5,33 +5,35 @@ __all__ = ['CHAT_DIV_ID', 'ChatCard', 'render_chat_list', 'mk_inp']
 
 # %% ../../nbs/0-Card.ipynb 2
 from fasthtml.common import *
+from .design_system import get_color, get_spacing, get_typography, get_border_radius, get_breakpoint, get_mobile_media_query
 
 # %% ../../nbs/0-Card.ipynb 4
 class ChatCard:
     def __init__(
         self,
-        user_color: str = "#1C0069",
-        assistant_color: str = "#004539",
+        user_color: str = None,
+        assistant_color: str = None,
         user_emoji: str = "🗣️",
         assistant_emoji: str = "🕵️‍♂️",
         max_width: str = "80%",
         card_max_width: str = "60%",
-        font_size: str = "1.5em",
-        mobile_font_size: str = "16px",
-        padding: str = "1.25em",
+        font_size: str = None,
+        mobile_font_size: str = None,
+        padding: str = None,
         user_align: str = "right",
         assistant_align: str = "left",
         user_self_align: str = "flex-end",
         assistant_self_align: str = "flex-start",
-        role_font_weight: str = "bold",
-        role_font_size: str = "1.1em",
-        role_margin_bottom: str = "8px",
+        role_font_weight: str = None,
+        role_font_size: str = None,
+        role_margin_bottom: str = None,
         content_white_space: str = "normal",
         spinner_class: str = "spinner",
     ):
+        # Use design system defaults or provided values
         self.colors = {
-            "User": user_color,
-            "Assistant": assistant_color,
+            "User": user_color or get_color("user_msg"),
+            "Assistant": assistant_color or get_color("assistant_msg"),
         }
 
         self.emojis = {"User": user_emoji, "Assistant": assistant_emoji}
@@ -41,25 +43,28 @@ class ChatCard:
             "Assistant": {"text": assistant_align, "self": assistant_self_align},
         }
 
-        self.border_radii = {"User": "1em 1em 0em 1em", "Assistant": "1em 1em 1em 0em"}
+        self.border_radii = {
+            "User": f"{get_border_radius('md')} {get_border_radius('md')} 0em {get_border_radius('md')}",
+            "Assistant": f"{get_border_radius('md')} {get_border_radius('md')} {get_border_radius('md')} 0em"
+        }
 
-        # Style configuration
+        # Style configuration with design system defaults
         self.card_max_width = card_max_width
         self.max_width = max_width
-        self.font_size = font_size
-        self.mobile_font_size = mobile_font_size
-        self.padding = padding
-        self.role_font_weight = role_font_weight
-        self.role_font_size = role_font_size
-        self.role_margin_bottom = role_margin_bottom
+        self.font_size = font_size or get_typography("2xl")
+        self.mobile_font_size = mobile_font_size or get_typography("md")
+        self.padding = padding or get_spacing("lg")
+        self.role_font_weight = role_font_weight or get_typography("weight_bold")
+        self.role_font_size = role_font_size or get_typography("lg")
+        self.role_margin_bottom = role_margin_bottom or get_spacing("sm")
         self.content_white_space = content_white_space
         self.spinner_class = spinner_class
 
-        # Build style template
+        # Build style template (fixed duplicate padding issue)
         self.style_template = f"""
-        background: {{bg}}; color: {{text_color}}; padding: 10px; font-size: {self.font_size}; 
-        max-width: min({self.card_max_width}, {self.max_width}); align-self: {{self_align}}; 
-        text-align: {{text_align}}; border-radius: {{border_radius}}; 
+        background: {{bg}}; color: {{text_color}}; font-size: {self.font_size};
+        max-width: min({self.card_max_width}, {self.max_width}); align-self: {{self_align}};
+        text-align: {{text_align}}; border-radius: {{border_radius}};
         padding: {self.padding}"""
 
     def _get_text_color(self, bg_color: str) -> str:
@@ -82,8 +87,8 @@ class ChatCard:
         r, g, b = adjust_channel(r), adjust_channel(g), adjust_channel(b)
         luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-        # Return white for dark backgrounds, black for light backgrounds
-        return "#FFFFFF" if luminance < 0.5 else "#000000"
+        # Return white for dark backgrounds, black for light backgrounds (using design system)
+        return get_color("light_text") if luminance < 0.5 else get_color("dark_text")
 
     def _get_style(self, role: str) -> str:
         """Generate CSS style string for a given role."""
@@ -103,9 +108,11 @@ class ChatCard:
     def get_mobile_styles(self) -> str:
         """Generate CSS media query for mobile devices."""
         return f"""
-        @media (max-width: 768px) {{
+        {get_mobile_media_query()} {{
             .chat-card {{
-                font-size: {self.mobile_font_size} !important;
+                font-size: {self.mobile_font_size};
+                padding: {get_spacing("sm")};
+                max-width: 95%;
             }}
         }}
         """
@@ -161,7 +168,7 @@ def render_chat_list(messages: List[Dict[str, str]], ChatCard: ChatCard):
         *[ChatCard(m) for m in messages],
         id=CHAT_DIV_ID,
         cls="chat-cards",
-        style="display: flex; flex-direction: column; gap: 10px;",
+        style=f"display: flex; flex-direction: column; gap: {get_spacing('md')};",
     )
 
 # %% ../../nbs/0-Card.ipynb 9
@@ -170,5 +177,5 @@ def mk_inp():
         id="msg",
         placeholder="Type a message...",
         autofocus=True,
-        style="width: 60%; max-width: 600px; padding: 0.75em; font-size: 1em; border-radius: 0.5em",
+        style=f"width: 60%; max-width: 600px; padding: {get_spacing('sm')}; font-size: {get_typography('md')}; border-radius: {get_border_radius('sm')}",
     )

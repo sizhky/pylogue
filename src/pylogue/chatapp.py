@@ -14,6 +14,7 @@ from .session import SessionManager, InMemorySessionManager, ChatSession, Messag
 from .service import ChatService, Responder, ErrorHandler
 from .renderer import ChatRenderer
 from .cards import ChatCard
+from .design_system import get_color, get_spacing, get_typography
 
 # %% ../../nbs/4-ChatApp.ipynb 3
 @dataclass
@@ -27,10 +28,17 @@ class ChatAppConfig:
     # Initial messages
     initial_messages_factory: Optional[Callable[[], List[Message]]] = None
 
-    # Styling
-    bg_color: str = "#1a1a1a"
-    header_style: str = "text-align: center; padding: 1em; color: white;"
+    # Styling (using design system defaults)
+    bg_color: str = None
+    header_style: str = None
     container_style: Optional[str] = None
+
+    def __post_init__(self):
+        """Initialize with design system defaults if not provided."""
+        if self.bg_color is None:
+            self.bg_color = get_color("dark_bg")
+        if self.header_style is None:
+            self.header_style = f"text-align: center; padding: {get_spacing('md')}; color: {get_color('light_text')};"
 
     # WebSocket settings
     ws_endpoint: str = "/ws"
@@ -57,24 +65,24 @@ class ChatAppConfig:
         ]
 
     def get_spinner_style(self) -> str:
-        """Get spinner CSS styles."""
+        """Get spinner CSS styles (using design system)."""
         if self.spinner_css:
             return self.spinner_css
 
-        return """
-        .spinner {
+        return f"""
+        .spinner {{
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #fff;
+            border: 3px solid {get_color("spinner_light")};
+            border-top-color: {get_color("light_text")};
             border-radius: 50%;
             animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        }}
+
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
         """
 
 # %% ../../nbs/4-ChatApp.ipynb 4
@@ -146,6 +154,7 @@ class ChatApp:
 
             return (
                 Title(self.config.page_title),
+                Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
                 Body(
                     Div(
                         H1(self.config.app_title, style=self.config.header_style),
@@ -153,7 +162,7 @@ class ChatApp:
                         self.renderer.render_form(),
                         style=container_style,
                     ),
-                    style="background-color: #000",
+                    style=f"background-color: {self.config.bg_color}",
                 ),
             )
 

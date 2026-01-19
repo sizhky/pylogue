@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional
 from fasthtml.common import *
 from .cards import ChatCard
 from .session import Message, ChatSession
+from .design_system import get_spacing, get_typography, get_border_radius, get_mobile_media_query
 
 # %% ../../nbs/3-Renderer.ipynb 3
 class ChatRenderer:
@@ -37,11 +38,11 @@ class ChatRenderer:
         self.input_placeholder = input_placeholder
         self.ws_endpoint = ws_endpoint
         self.input_style = input_style or (
-            "width: 60%; max-width: 600px; padding: 0.75em; "
-            "font-size: 1em; border-radius: 0.5em"
+            f"width: 60%; max-width: 600px; padding: {get_spacing('sm')}; "
+            f"font-size: {get_typography('md')}; border-radius: {get_border_radius('sm')}"
         )
         self.chat_container_style = chat_container_style or (
-            "display: flex; flex-direction: column; gap: 1em; margin: 3em;"
+            f"display: flex; flex-direction: column; gap: {get_spacing('md')}; margin: {get_spacing('3xl')};"
         )
 
     def render_message(self, message: Message) -> Any:
@@ -58,13 +59,19 @@ class ChatRenderer:
         Returns:
             FastHTML Div containing all rendered messages
         """
-        # Add mobile-responsive margin CSS
-        mobile_margin_css = """
-        @media (max-width: 768px) {
-            .chat-cards {
-                margin: 1em !important;
-            }
-        }
+        # Mobile-responsive styles (consolidated with card mobile styles)
+        mobile_margin_css = f"""
+        {get_mobile_media_query()} {{
+            .chat-cards {{
+                margin: {get_spacing('md')};
+                gap: {get_spacing('sm')};
+            }}
+            #msg {{
+                width: 100%;
+                max-width: 100%;
+                padding: {get_spacing('sm')};
+            }}
+        }}
         """
 
         return Div(
@@ -125,8 +132,8 @@ class ChatRenderer:
             FastHTML Form element
         """
         form_style = form_style or (
-            "display: flex; justify-content: center; "
-            "margin-top: 20px; padding: 20px;"
+            f"display: flex; justify-content: center; "
+            f"margin-top: {get_spacing('lg')}; padding: {get_spacing('lg')};"
         )
 
         return Form(
