@@ -17,7 +17,7 @@ You talk only as much as needed and not a word more.
 """
 
 kitchen_helper_agent = Agent(
-    "openai:gpt-4-mini",
+    "openai:gpt-4o-mini",
     system_prompt=system_prompt,
 )
 
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "scripts.examples.ai.pydantic_ai_app:app_factory",
         host="0.0.0.0",
-        port=5001,
+        port=5002,
         reload=True,
         factory=True,
     )
