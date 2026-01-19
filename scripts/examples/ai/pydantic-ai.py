@@ -1,21 +1,23 @@
 # fasthtml solveit
 from pylogue.chatapp import create_default_chat_app
+from dotenv import load_dotenv
 import logfire
 from pydantic_ai import Agent
 
+load_dotenv(override=True)
+
 logfire.configure(
-    token="pylf_v1_us_8nPSf615mpVmStPXQ7KNRpTQHzPGhHJ5JtW8BQYF8Y9Q",
     environment="development",
     service_name="kitchen-helper-bot",
 )
 logfire.instrument_pydantic_ai()
 
 system_prompt = """
-"You talk only as much as needed and not a word more.
+You talk only as much as needed and not a word more.
 """
 
 kitchen_helper_agent = Agent(
-    "google-gla:gemini-2.5-flash",
+    "openai:gpt-4",
     system_prompt=system_prompt,
 )
 

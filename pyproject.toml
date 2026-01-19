@@ -27,6 +27,7 @@ dependencies = [
   "mkdocs-git-revision-date-localized-plugin>=1.4.7",
   "pymdown-extensions>=10.16.1",
   "python-fasthtml>=0.12.29",
+  "monsterui",
 ]
 
 [project.optional-dependencies]
@@ -68,4 +69,3 @@ warn_no_return = true
 module = "tests.*"
 allow_untyped_defs = true
 disable_error_code = "attr-defined"
-
