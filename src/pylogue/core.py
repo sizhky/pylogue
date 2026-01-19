@@ -1,7 +1,16 @@
-# Minimal FastHTML + MonsterUI streaming chat
+# Core FastHTML + MonsterUI chat
 from fasthtml.common import *
-from monsterui.all import Theme, Container, ContainerT, Card, CardT, TextPresets, Button, ButtonT, FastHTML as MUFastHTML
+from monsterui.all import Theme, Container, ContainerT, TextPresets, Button, ButtonT, FastHTML as MUFastHTML
 import asyncio
+import inspect
+
+
+class EchoResponder:
+    async def __call__(self, message: str):
+        response = f"ECHO: {message}"
+        for ch in response:
+            await asyncio.sleep(0.05)
+            yield ch
 
 
 def render_input():
@@ -38,7 +47,7 @@ def render_cards(cards):
     )
 
 
-def main():
+def main(responder=None):
     headers = list(Theme.slate.headers())
     headers.append(
         Style(
@@ -58,6 +67,7 @@ def main():
     )
 
     app = MUFastHTML(exts="ws", hdrs=tuple(headers), pico=False)
+    responder = responder or EchoResponder()
 
     sessions = {}
 
@@ -104,11 +114,17 @@ def main():
         cards.append({"question": msg, "answer": ""})
         await send(render_cards(cards))
 
-        response = f"ECHO: {msg}"
-        for ch in response:
-            await asyncio.sleep(0.02)
-            cards[-1]["answer"] += ch
-            await send(render_cards(cards))
+        result = responder(msg)
+        if inspect.isasyncgen(result):
+            async for chunk in result:
+                cards[-1]["answer"] += str(chunk)
+                await send(render_cards(cards))
+        else:
+            if inspect.isawaitable(result):
+                result = await result
+            for ch in str(result):
+                cards[-1]["answer"] += ch
+                await send(render_cards(cards))
 
         await send(render_input())
 
@@ -118,4 +134,4 @@ def main():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("pylogue.minimal_stream:main", host="0.0.0.0", port=5001, reload=True, factory=True)
+    uvicorn.run("pylogue.core:main", host="0.0.0.0", port=5001, reload=True, factory=True)

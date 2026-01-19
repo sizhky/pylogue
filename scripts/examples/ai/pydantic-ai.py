@@ -1,5 +1,5 @@
 # fasthtml solveit
-from pylogue.chatapp import create_default_chat_app
+from pylogue.core import main as create_core_app
 from dotenv import load_dotenv
 import logfire
 from pydantic_ai import Agent
@@ -17,7 +17,7 @@ You talk only as much as needed and not a word more.
 """
 
 kitchen_helper_agent = Agent(
-    "openai:gpt-4",
+    "openai:gpt-4-mini",
     system_prompt=system_prompt,
 )
 
@@ -74,12 +74,13 @@ class PydanticAIAgentResponder:
 
 
 if __name__ == "__main__":
-    # Create streaming responder
+    # Create responder compatible with core app (async generator)
     responder = PydanticAIStreamingResponder(agent=kitchen_helper_agent)
 
-    # Create chat app with streaming support
-    app = create_default_chat_app(responder=responder)
-    print("✅ Pydantic AI Streaming Chat ready!")
+    # Create core app (streams chars from returned response)
+    app = create_core_app(responder=responder)
+    print("✅ Pydantic AI Chat ready!")
     print("💬 Try asking questions and watch responses stream in real-time!")
-    print("🔗 Chat endpoint: http://localhost:5001/chat")
-    app.run(port=5001)
+    print("🔗 Chat endpoint: http://localhost:5001/")
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5001, reload=False)
