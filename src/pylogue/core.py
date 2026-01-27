@@ -103,6 +103,7 @@ def get_core_headers(include_markdown: bool = True):
                         const rawAttr = el.getAttribute('data-raw');
                         const source = rawB64 ? decodeB64(rawB64) : (rawAttr !== null ? rawAttr : el.textContent);
                         if (el.dataset.renderedSource === source) return;
+                        if (el.dataset.mermaidDirty === 'true') return;
                         el.innerHTML = marked.parse(source);
                         el.dataset.renderedSource = source;
                     });
@@ -115,11 +116,36 @@ def get_core_headers(include_markdown: bool = True):
                 const observeMarkdown = () => {
                     const target = document.body;
                     if (!target) return;
-                    const observer = new MutationObserver(() => {
+                    let renderTimer = null;
+                    const scheduleRender = () => {
                         if (markdownRendering) return;
-                        requestAnimationFrame(() => renderMarkdown(document));
+                        if (renderTimer) return;
+                        renderTimer = requestAnimationFrame(() => {
+                            renderTimer = null;
+                            renderMarkdown(document);
+                        });
+                    };
+                    const observer = new MutationObserver((mutations) => {
+                        for (const mutation of mutations) {
+                            if (mutation.type !== 'characterData') continue;
+                            const parent = mutation.target && mutation.target.parentElement;
+                            if (!parent) continue;
+                            const markedRoot = parent.closest('.marked');
+                            if (!markedRoot) continue;
+                            const rawText = markedRoot.getAttribute('data-raw') || '';
+                            if (!isMermaidFenceClosed(rawText)) {
+                                markedRoot.dataset.mermaidDirty = 'true';
+                            } else if (markedRoot.dataset.mermaidDirty === 'true') {
+                                markedRoot.dataset.mermaidDirty = 'false';
+                            }
+                        }
+                        scheduleRender();
                     });
-                    observer.observe(target, { childList: true, subtree: true });
+                    observer.observe(target, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true,
+                    });
                     renderMarkdown(document);
                 };
 
@@ -143,6 +169,7 @@ def get_core_headers(include_markdown: bool = True):
                 let mermaidReady = false;
                 let mermaidCounter = 0;
                 const mermaidStates = {};
+                const mermaidCache = new Map();
 
                 const ensureMermaid = () => {
                     if (mermaidReady) return;
@@ -196,6 +223,7 @@ def get_core_headers(include_markdown: bool = True):
                     wrapper.style.touchAction = 'none';
 
                     wrapper.addEventListener('wheel', (e) => {
+                        if (!e.ctrlKey && !e.metaKey && !e.altKey) return;
                         e.preventDefault();
                         const currentSvg = wrapper.querySelector('svg');
                         if (!currentSvg) return;
@@ -276,6 +304,7 @@ def get_core_headers(include_markdown: bool = True):
                     wrapper.id = diagramId;
                     wrapper.className = 'mermaid-wrapper';
                     wrapper.dataset.mermaidCode = codeText;
+                    wrapper.dataset.mermaidRendered = 'false';
 
                     const pre = document.createElement('pre');
                     pre.className = 'mermaid';
@@ -350,6 +379,13 @@ def get_core_headers(include_markdown: bool = True):
                         const codeText = code.textContent || '';
                         const { container, wrapper } = createMermaidContainer(codeText);
                         pre.replaceWith(container);
+                        const cachedSvg = mermaidCache.get(codeText);
+                        if (cachedSvg) {
+                            wrapper.innerHTML = cachedSvg;
+                            wrapper.dataset.mermaidRendered = 'true';
+                            scheduleMermaidInteraction(wrapper);
+                            return;
+                        }
                         nodes.push(wrapper.querySelector('pre.mermaid'));
                     });
                     if (nodes.length === 0) return;
@@ -361,7 +397,14 @@ def get_core_headers(include_markdown: bool = True):
                         mermaid.run({ nodes }).then(() => {
                             nodes.forEach((node) => {
                                 const wrapper = node.closest('.mermaid-wrapper');
-                                if (wrapper) scheduleMermaidInteraction(wrapper);
+                                if (!wrapper) return;
+                                wrapper.dataset.mermaidRendered = 'true';
+                                const codeText = wrapper.dataset.mermaidCode || '';
+                                const svg = wrapper.querySelector('svg');
+                                if (codeText && svg) {
+                                    mermaidCache.set(codeText, svg.outerHTML);
+                                }
+                                scheduleMermaidInteraction(wrapper);
                             });
                         });
                     }, 250);
@@ -370,8 +413,36 @@ def get_core_headers(include_markdown: bool = True):
                 const observeMermaid = () => {
                     const target = document.getElementById('cards');
                     if (!target) return;
-                    const observer = new MutationObserver(() => upgradeMermaidBlocks(target));
-                    observer.observe(target, { childList: true, subtree: true });
+                    let upgradeTimer = null;
+                    const scheduleUpgrade = () => {
+                        if (upgradeTimer) return;
+                        upgradeTimer = setTimeout(() => {
+                            upgradeTimer = null;
+                            upgradeMermaidBlocks(target);
+                        }, 120);
+                    };
+                    const observer = new MutationObserver((mutations) => {
+                        for (const mutation of mutations) {
+                            if (mutation.type === 'characterData') {
+                                const parent = mutation.target && mutation.target.parentElement;
+                                const markedRoot = parent ? parent.closest('.marked') : null;
+                                if (markedRoot) {
+                                    const rawText = markedRoot.getAttribute('data-raw') || '';
+                                    if (!isMermaidFenceClosed(rawText)) {
+                                        markedRoot.dataset.mermaidDirty = 'true';
+                                    } else if (markedRoot.dataset.mermaidDirty === 'true') {
+                                        markedRoot.dataset.mermaidDirty = 'false';
+                                    }
+                                }
+                            }
+                        }
+                        scheduleUpgrade();
+                    });
+                    observer.observe(target, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true,
+                    });
                     upgradeMermaidBlocks(target);
                 };
 
