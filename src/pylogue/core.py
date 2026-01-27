@@ -136,6 +136,37 @@ def get_core_headers(include_markdown: bool = True):
                 };
                 window.__forceScrollToBottom = forceScrollToBottom;
 
+                const isNearBottom = (threshold = 32) => {
+                    const scrollElement = document.scrollingElement || document.documentElement;
+                    if (!scrollElement) return false;
+                    const maxScrollTop = scrollElement.scrollHeight - scrollElement.clientHeight;
+                    return maxScrollTop - scrollElement.scrollTop <= threshold;
+                };
+
+                let bottomLockUntil = 0;
+                let bottomLockRaf = null;
+
+                const tickBottomLock = () => {
+                    const now = Date.now();
+                    if (now > bottomLockUntil) {
+                        bottomLockRaf = null;
+                        return;
+                    }
+                    const scrollElement = document.scrollingElement || document.documentElement;
+                    if (scrollElement) {
+                        scrollElement.scrollTop = scrollElement.scrollHeight;
+                    }
+                    bottomLockRaf = requestAnimationFrame(tickBottomLock);
+                };
+
+                const startBottomLock = (durationMs = 1200) => {
+                    if (!isNearBottom()) return;
+                    bottomLockUntil = Date.now() + durationMs;
+                    if (!bottomLockRaf) {
+                        bottomLockRaf = requestAnimationFrame(tickBottomLock);
+                    }
+                };
+
                 const decodeB64 = (value) => {
                     if (!value) return '';
                     try {
@@ -234,8 +265,19 @@ def get_core_headers(include_markdown: bool = True):
                 });
 
                 document.body.addEventListener('htmx:wsAfterMessage', () => {
-                    forceScrollToBottom();
+                    startBottomLock();
                 });
+
+                document.body.addEventListener('htmx:wsBeforeMessage', () => {
+                    startBottomLock();
+                });
+
+                document.addEventListener('scroll', () => {
+                    if (!isNearBottom()) {
+                        bottomLockUntil = 0;
+                        bottomLockRaf = null;
+                    }
+                }, { passive: true });
                 """,
                 type="module",
             )
@@ -474,6 +516,7 @@ def get_core_headers(include_markdown: bool = True):
                     mermaidRenderTimer = setTimeout(() => {
                         ensureMermaid();
                         mermaid.run({ nodes }).then(() => {
+                            let didScroll = false;
                             nodes.forEach((node) => {
                                 const wrapper = node.closest('.mermaid-wrapper');
                                 if (!wrapper) return;
@@ -484,6 +527,10 @@ def get_core_headers(include_markdown: bool = True):
                                     mermaidCache.set(codeText, svg.outerHTML);
                                 }
                                 scheduleMermaidInteraction(wrapper);
+                                if (!didScroll && window.__forceScrollToBottom) {
+                                    didScroll = true;
+                                    window.__forceScrollToBottom();
+                                }
                             });
                         });
                     }, 250);
