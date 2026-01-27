@@ -10,7 +10,7 @@ class EchoResponder:
     async def __call__(self, message: str):
         response = f"ECHO: {message}"
         for ch in response:
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.01)
             yield ch
 
 
@@ -111,6 +111,69 @@ def get_core_headers(include_markdown: bool = True):
             }
             .marked a:hover {
                 color: #1d4ed8;
+            }
+            .marked table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 16px 0;
+                font-size: 0.95rem;
+            }
+            .marked thead th {
+                background: #f1f5f9;
+                color: #0f172a;
+                font-weight: 600;
+                border: 1px solid #e2e8f0;
+                padding: 10px 12px;
+                text-align: left;
+            }
+            .marked tbody td {
+                border: 1px solid #e2e8f0;
+                padding: 10px 12px;
+                vertical-align: top;
+            }
+            .marked tbody tr:nth-child(odd) {
+                background: #f8fafc;
+            }
+            .marked tbody tr:hover {
+                background: #eef2ff;
+            }
+            .marked blockquote {
+                margin: 16px 0;
+                padding: 12px 14px;
+                border-left: 3px solid #e2e8f0;
+                background: #f8fafc;
+                color: #475569;
+                border-radius: 8px;
+            }
+            .marked pre {
+                background: #0f172a;
+                color: #e2e8f0;
+                padding: 12px 14px;
+                border-radius: 12px;
+                overflow: auto;
+            }
+            .marked code {
+                background: #f1f5f9;
+                color: #0f172a;
+                padding: 0.15rem 0.35rem;
+                border-radius: 6px;
+                font-size: 0.95em;
+            }
+            .marked pre code {
+                background: transparent;
+                color: inherit;
+                padding: 0;
+                border-radius: 0;
+            }
+            .marked ul,
+            .marked ol {
+                margin: 12px 0;
+                padding-left: 1.25rem;
+            }
+            .marked hr {
+                border: 0;
+                border-top: 1px solid #e2e8f0;
+                margin: 20px 0;
             }
             .copy-btn {
                 border: 1px solid #e2e8f0;
