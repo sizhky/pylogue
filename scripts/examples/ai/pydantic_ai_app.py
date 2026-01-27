@@ -29,22 +29,75 @@ class PydanticAIStreamingResponder:
 
     async def __call__(self, text: str, context=None):
         import asyncio
+        import html
+        import json
+        from pydantic_ai import messages
+        from pydantic_ai.run import AgentRunResultEvent
 
-        async with self.agent.run_stream(
+        def _format_tool_call_summary(tool_name: str, args):
+            if args is None:
+                pretty_args = "{}"
+            elif isinstance(args, str):
+                try:
+                    pretty_args = json.dumps(json.loads(args), indent=2, sort_keys=True, ensure_ascii=True)
+                except json.JSONDecodeError:
+                    pretty_args = args
+            else:
+                pretty_args = json.dumps(args, indent=2, sort_keys=True, ensure_ascii=True)
+
+            tool_label = html.escape(tool_name or "tool")
+            safe_args = html.escape(pretty_args)
+            return (
+                "\n\n"
+                f'<details class="tool-call"><summary>Tool call: {tool_label}</summary>'
+                f"<pre><code>{safe_args}</code></pre></details>\n\n"
+            )
+
+        async for event in self.agent.run_stream_events(
             text,
             message_history=self.message_history,
             deps=self.agent_deps,
-        ) as response:
-            async for token in response.stream_text(delta=True):
-                yield token
+        ):
+            kind = getattr(event, "event_kind", "")
+
+            if kind == "part_delta" and isinstance(event.delta, messages.TextPartDelta):
+                if event.delta.content_delta:
+                    yield event.delta.content_delta
+                    await asyncio.sleep(0)
+                continue
+
+            if kind == "function_tool_call":
+                part = event.part
+                yield _format_tool_call_summary(part.tool_name, part.args)
                 await asyncio.sleep(0)
+                continue
 
-            self.message_history = response.all_messages()
+            if kind == "builtin_tool_call":
+                part = event.part
+                yield _format_tool_call_summary(part.tool_name, part.args)
+                await asyncio.sleep(0)
+                continue
 
+            if isinstance(event, AgentRunResultEvent):
+                self.message_history = event.result.all_messages()
+
+agent = Agent(
+    "openai:gpt-4o-mini",
+    system_prompt=system_prompt,
+)
+
+@agent.tool_plain
+def time_now(timezone: str = "UTC") -> str:
+    """Get the current time in the specified timezone."""
+    from datetime import datetime
+    import pytz
+
+    tz = pytz.timezone(timezone)
+    return datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 def app_factory():
     return create_core_app(
-        responder_factory=lambda: PydanticAIStreamingResponder(),
+        responder_factory=lambda: PydanticAIStreamingResponder(agent=agent),
         tag_line="PYDANTIC AI",
         tag_line_href="https://google.com",
         title="Pydantic AI Chat",
