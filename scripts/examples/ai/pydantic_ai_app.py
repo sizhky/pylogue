@@ -60,6 +60,12 @@ class PydanticAIStreamingResponder:
         ):
             kind = getattr(event, "event_kind", "")
 
+            if kind == "part_start" and isinstance(event.part, messages.TextPart):
+                if event.part.content:
+                    yield event.part.content
+                    await asyncio.sleep(0)
+                continue
+
             if kind == "part_delta" and isinstance(event.delta, messages.TextPartDelta):
                 if event.delta.content_delta:
                     yield event.delta.content_delta
