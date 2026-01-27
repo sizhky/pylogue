@@ -72,6 +72,242 @@ def get_core_headers(include_markdown: bool = True):
     headers = list(Theme.slate.headers())
     if include_markdown:
         headers.append(MarkdownJS())
+        headers.append(
+            Script(
+                """
+                import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+                let mermaidReady = false;
+                let mermaidCounter = 0;
+                const mermaidStates = {};
+
+                const ensureMermaid = () => {
+                    if (mermaidReady) return;
+                    mermaid.initialize({ startOnLoad: false });
+                    mermaidReady = true;
+                };
+
+                const applyMermaidState = (wrapper, state) => {
+                    const svg = wrapper.querySelector('svg');
+                    if (!svg) return;
+                    svg.style.pointerEvents = 'none';
+                    svg.style.transform = `translate(${state.translateX}px, ${state.translateY}px) scale(${state.scale})`;
+                    svg.style.transformOrigin = 'center center';
+                };
+
+                const fitSvgToWrapper = (wrapper, state) => {
+                    const svg = wrapper.querySelector('svg');
+                    if (!svg) return;
+                    const wrapperRect = wrapper.getBoundingClientRect();
+                    const svgRect = svg.getBoundingClientRect();
+                    if (!wrapperRect.width || !wrapperRect.height || !svgRect.width || !svgRect.height) return;
+                    const padding = 16;
+                    const scaleX = (wrapperRect.width - padding) / svgRect.width;
+                    const scaleY = (wrapperRect.height - padding) / svgRect.height;
+                    const initialScale = Math.min(scaleX, scaleY, 1);
+                    state.scale = initialScale;
+                    state.translateX = 0;
+                    state.translateY = 0;
+                    applyMermaidState(wrapper, state);
+                };
+
+                const initMermaidInteraction = (wrapper) => {
+                    if (wrapper.dataset.mermaidInteractive === 'true') return;
+                    const svg = wrapper.querySelector('svg');
+                    if (!svg) return;
+
+                    const state = {
+                        scale: 1,
+                        translateX: 0,
+                        translateY: 0,
+                        isPanning: false,
+                        startX: 0,
+                        startY: 0,
+                    };
+                    mermaidStates[wrapper.id] = state;
+                    wrapper.dataset.mermaidInteractive = 'true';
+
+                    fitSvgToWrapper(wrapper, state);
+
+                    wrapper.style.cursor = 'grab';
+                    wrapper.style.touchAction = 'none';
+
+                    wrapper.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        const currentSvg = wrapper.querySelector('svg');
+                        if (!currentSvg) return;
+                        const rect = currentSvg.getBoundingClientRect();
+                        const mouseX = e.clientX - rect.left - rect.width / 2;
+                        const mouseY = e.clientY - rect.top - rect.height / 2;
+                        const zoomIntensity = 0.01;
+                        const delta = e.deltaY > 0 ? 1 - zoomIntensity : 1 + zoomIntensity;
+                        const newScale = Math.min(Math.max(0.1, state.scale * delta), 12);
+                        const scaleFactor = newScale / state.scale - 1;
+                        state.translateX -= mouseX * scaleFactor;
+                        state.translateY -= mouseY * scaleFactor;
+                        state.scale = newScale;
+                        applyMermaidState(wrapper, state);
+                    }, { passive: false });
+
+                    wrapper.addEventListener('pointerdown', (e) => {
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+                        state.isPanning = true;
+                        state.startX = e.clientX - state.translateX;
+                        state.startY = e.clientY - state.translateY;
+                        wrapper.setPointerCapture(e.pointerId);
+                        wrapper.style.cursor = 'grabbing';
+                        e.preventDefault();
+                    });
+
+                    wrapper.addEventListener('pointermove', (e) => {
+                        if (!state.isPanning) return;
+                        state.translateX = e.clientX - state.startX;
+                        state.translateY = e.clientY - state.startY;
+                        applyMermaidState(wrapper, state);
+                    });
+
+                    const stopPanning = (e) => {
+                        if (!state.isPanning) return;
+                        state.isPanning = false;
+                        try {
+                            wrapper.releasePointerCapture(e.pointerId);
+                        } catch {
+                            // Ignore if pointer capture is not active
+                        }
+                        wrapper.style.cursor = 'grab';
+                    };
+                    wrapper.addEventListener('pointerup', stopPanning);
+                    wrapper.addEventListener('pointercancel', stopPanning);
+                };
+
+                const scheduleMermaidInteraction = (wrapper, { maxAttempts = 12, delayMs = 80 } = {}) => {
+                    let attempt = 0;
+                    const check = () => {
+                        if (wrapper.querySelector('svg')) {
+                            initMermaidInteraction(wrapper);
+                            return;
+                        }
+                        if (attempt >= maxAttempts) return;
+                        attempt += 1;
+                        setTimeout(check, delayMs);
+                    };
+                    check();
+                };
+
+                const createMermaidContainer = (codeText) => {
+                    mermaidCounter += 1;
+                    const diagramId = `chat-mermaid-${mermaidCounter}`;
+
+                    const container = document.createElement('div');
+                    container.className = 'mermaid-container';
+
+                    const controls = document.createElement('div');
+                    controls.className = 'mermaid-controls';
+                    controls.innerHTML = `
+                        <button type="button" data-action="reset" title="Reset zoom">Reset</button>
+                        <button type="button" data-action="zoom-in" title="Zoom in">+</button>
+                        <button type="button" data-action="zoom-out" title="Zoom out">−</button>
+                    `;
+
+                    const wrapper = document.createElement('div');
+                    wrapper.id = diagramId;
+                    wrapper.className = 'mermaid-wrapper';
+                    wrapper.dataset.mermaidCode = codeText;
+
+                    const pre = document.createElement('pre');
+                    pre.className = 'mermaid';
+                    pre.textContent = codeText;
+                    wrapper.appendChild(pre);
+
+                    container.appendChild(controls);
+                    container.appendChild(wrapper);
+
+                    controls.addEventListener('click', (event) => {
+                        const btn = event.target.closest('button');
+                        if (!btn) return;
+                        const action = btn.getAttribute('data-action');
+                        if (action === 'reset') {
+                            resetMermaidZoom(wrapper.id);
+                        } else if (action === 'zoom-in') {
+                            zoomMermaidIn(wrapper.id);
+                        } else if (action === 'zoom-out') {
+                            zoomMermaidOut(wrapper.id);
+                        }
+                    });
+
+                    return { container, wrapper };
+                };
+
+                const resetMermaidZoom = (id) => {
+                    const state = mermaidStates[id];
+                    const wrapper = document.getElementById(id);
+                    if (!state || !wrapper) return;
+                    fitSvgToWrapper(wrapper, state);
+                };
+
+                const zoomMermaidIn = (id) => {
+                    const state = mermaidStates[id];
+                    const wrapper = document.getElementById(id);
+                    if (!state || !wrapper) return;
+                    state.scale = Math.min(state.scale * 1.1, 12);
+                    applyMermaidState(wrapper, state);
+                };
+
+                const zoomMermaidOut = (id) => {
+                    const state = mermaidStates[id];
+                    const wrapper = document.getElementById(id);
+                    if (!state || !wrapper) return;
+                    state.scale = Math.max(state.scale * 0.9, 0.1);
+                    applyMermaidState(wrapper, state);
+                };
+
+                const upgradeMermaidBlocks = (root = document) => {
+                    const blocks = root.querySelectorAll('pre > code.language-mermaid');
+                    const nodes = [];
+                    blocks.forEach((code) => {
+                        if (code.dataset.mermaidProcessed === 'true') return;
+                        code.dataset.mermaidProcessed = 'true';
+                        const pre = code.parentElement;
+                        if (!pre) return;
+                        const codeText = code.textContent || '';
+                        const { container, wrapper } = createMermaidContainer(codeText);
+                        pre.replaceWith(container);
+                        nodes.push(wrapper.querySelector('pre.mermaid'));
+                    });
+                    if (nodes.length === 0) return;
+                    ensureMermaid();
+                    mermaid.run({ nodes }).then(() => {
+                        nodes.forEach((node) => {
+                            const wrapper = node.closest('.mermaid-wrapper');
+                            if (wrapper) scheduleMermaidInteraction(wrapper);
+                        });
+                    });
+                };
+
+                const observeMermaid = () => {
+                    const target = document.getElementById('cards');
+                    if (!target) return;
+                    const observer = new MutationObserver(() => upgradeMermaidBlocks(target));
+                    observer.observe(target, { childList: true, subtree: true });
+                    upgradeMermaidBlocks(target);
+                };
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    observeMermaid();
+                    setTimeout(() => upgradeMermaidBlocks(document), 0);
+                });
+
+                document.body.addEventListener('htmx:afterSwap', (event) => {
+                    upgradeMermaidBlocks(event.target || document);
+                });
+
+                if (window.htmx && typeof window.htmx.onLoad === 'function') {
+                    window.htmx.onLoad((root) => upgradeMermaidBlocks(root || document));
+                }
+                """,
+                type="module",
+            )
+        )
     headers.append(
         Style(
             """
@@ -146,10 +382,11 @@ def get_core_headers(include_markdown: bool = True):
                 border-radius: 8px;
             }
             .marked pre {
-                background: #0f172a;
-                color: #e2e8f0;
+                background: #f8fafc;
+                color: #0f172a;
                 padding: 12px 14px;
                 border-radius: 12px;
+                border: 1px solid #e2e8f0;
                 overflow: auto;
             }
             .marked code {
@@ -164,6 +401,53 @@ def get_core_headers(include_markdown: bool = True):
                 color: inherit;
                 padding: 0;
                 border-radius: 0;
+            }
+            .marked .mermaid-container {
+                position: relative;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                background: #ffffff;
+                padding: 8px;
+                margin: 16px 0;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+            }
+            .marked .mermaid-wrapper {
+                min-height: 260px;
+                max-height: 70vh;
+                overflow: hidden;
+                position: relative;
+            }
+            .marked .mermaid-wrapper svg {
+                display: block;
+                width: 100%;
+                height: auto;
+                pointer-events: none;
+            }
+            .marked .mermaid-controls {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                display: inline-flex;
+                gap: 6px;
+                background: rgba(255, 255, 255, 0.95);
+                border: 1px solid #e2e8f0;
+                border-radius: 999px;
+                padding: 4px 6px;
+                z-index: 10;
+            }
+            .marked .mermaid-controls button {
+                border: 0;
+                background: transparent;
+                color: #475569;
+                font-size: 12px;
+                line-height: 1;
+                padding: 4px 6px;
+                border-radius: 999px;
+                cursor: pointer;
+            }
+            .marked .mermaid-controls button:hover {
+                background: #f1f5f9;
+                color: #0f172a;
             }
             .marked ul,
             .marked ol {
