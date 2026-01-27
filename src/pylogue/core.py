@@ -4,6 +4,7 @@ from monsterui.all import Theme, Container, ContainerT, TextPresets, Button, But
 import asyncio
 import inspect
 import json
+import base64
 
 
 class EchoResponder:
@@ -33,7 +34,11 @@ def render_cards(cards):
         rows.append(
             Div(
                 P("You", cls=(TextPresets.muted_sm, "text-right")),
-                Div(card["question"], cls="marked text-base text-right"),
+                Div(
+                    card["question"],
+                    data_raw_b64=base64.b64encode(card["question"].encode("utf-8")).decode("ascii"),
+                    cls="marked text-base text-right",
+                ),
                 cls="chat-row-block chat-row-user",
             )
         )
@@ -54,7 +59,7 @@ def render_cards(cards):
                 Div(
                     card["answer"] or "…",
                     id=assistant_id if assistant_id else None,
-                    data_raw=card["answer"] or "",
+                    data_raw_b64=base64.b64encode((card["answer"] or "").encode("utf-8")).decode("ascii"),
                     cls="marked text-base text-left",
                 ),
                 cls="chat-row-block chat-row-assistant",
@@ -71,7 +76,65 @@ def render_cards(cards):
 def get_core_headers(include_markdown: bool = True):
     headers = list(Theme.slate.headers())
     if include_markdown:
-        headers.append(MarkdownJS())
+        headers.append(
+            Script(
+                """
+                import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
+
+                let markdownRendering = false;
+
+                const decodeB64 = (value) => {
+                    if (!value) return '';
+                    try {
+                        const binary = atob(value);
+                        const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+                        return new TextDecoder('utf-8').decode(bytes);
+                    } catch {
+                        return '';
+                    }
+                };
+
+                const renderMarkdown = (root = document) => {
+                    const nodes = root.querySelectorAll('.marked');
+                    if (nodes.length === 0) return;
+                    markdownRendering = true;
+                    nodes.forEach((el) => {
+                        const rawB64 = el.getAttribute('data-raw-b64');
+                        const rawAttr = el.getAttribute('data-raw');
+                        const source = rawB64 ? decodeB64(rawB64) : (rawAttr !== null ? rawAttr : el.textContent);
+                        if (el.dataset.renderedSource === source) return;
+                        el.innerHTML = marked.parse(source);
+                        el.dataset.renderedSource = source;
+                    });
+                    markdownRendering = false;
+                    if (window.__upgradeMermaidBlocks) {
+                        window.__upgradeMermaidBlocks(root);
+                    }
+                };
+
+                const observeMarkdown = () => {
+                    const target = document.body;
+                    if (!target) return;
+                    const observer = new MutationObserver(() => {
+                        if (markdownRendering) return;
+                        requestAnimationFrame(() => renderMarkdown(document));
+                    });
+                    observer.observe(target, { childList: true, subtree: true });
+                    renderMarkdown(document);
+                };
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    observeMarkdown();
+                    renderMarkdown(document);
+                });
+
+                document.body.addEventListener('htmx:afterSwap', (event) => {
+                    renderMarkdown(event.target || document);
+                });
+                """,
+                type="module",
+            )
+        )
         headers.append(
             Script(
                 """
@@ -261,11 +324,26 @@ def get_core_headers(include_markdown: bool = True):
                     applyMermaidState(wrapper, state);
                 };
 
+                const isMermaidFenceClosed = (rawText) => {
+                    if (!rawText) return true;
+                    const openIndex = rawText.lastIndexOf('```mermaid');
+                    if (openIndex === -1) return true;
+                    const closeIndex = rawText.indexOf('```', openIndex + 3);
+                    return closeIndex !== -1;
+                };
+
+                let mermaidRenderTimer = null;
+
                 const upgradeMermaidBlocks = (root = document) => {
                     const blocks = root.querySelectorAll('pre > code.language-mermaid');
                     const nodes = [];
                     blocks.forEach((code) => {
                         if (code.dataset.mermaidProcessed === 'true') return;
+                        const markedRoot = code.closest('.marked');
+                        const rawSource = markedRoot ? markedRoot.getAttribute('data-raw') : null;
+                        if (rawSource && !isMermaidFenceClosed(rawSource)) {
+                            return;
+                        }
                         code.dataset.mermaidProcessed = 'true';
                         const pre = code.parentElement;
                         if (!pre) return;
@@ -275,13 +353,18 @@ def get_core_headers(include_markdown: bool = True):
                         nodes.push(wrapper.querySelector('pre.mermaid'));
                     });
                     if (nodes.length === 0) return;
-                    ensureMermaid();
-                    mermaid.run({ nodes }).then(() => {
-                        nodes.forEach((node) => {
-                            const wrapper = node.closest('.mermaid-wrapper');
-                            if (wrapper) scheduleMermaidInteraction(wrapper);
+                    if (mermaidRenderTimer) {
+                        clearTimeout(mermaidRenderTimer);
+                    }
+                    mermaidRenderTimer = setTimeout(() => {
+                        ensureMermaid();
+                        mermaid.run({ nodes }).then(() => {
+                            nodes.forEach((node) => {
+                                const wrapper = node.closest('.mermaid-wrapper');
+                                if (wrapper) scheduleMermaidInteraction(wrapper);
+                            });
                         });
-                    });
+                    }, 250);
                 };
 
                 const observeMermaid = () => {
@@ -291,6 +374,8 @@ def get_core_headers(include_markdown: bool = True):
                     observer.observe(target, { childList: true, subtree: true });
                     upgradeMermaidBlocks(target);
                 };
+
+                window.__upgradeMermaidBlocks = upgradeMermaidBlocks;
 
                 document.addEventListener('DOMContentLoaded', () => {
                     observeMermaid();
@@ -517,7 +602,8 @@ def get_core_headers(include_markdown: bool = True):
               if (!targetId) return;
               const el = document.getElementById(targetId);
               if (!el) return;
-              const text = el.getAttribute('data-raw') || el.innerText;
+              const rawB64 = el.getAttribute('data-raw-b64');
+              const text = rawB64 ? decodeB64(rawB64) : (el.getAttribute('data-raw') || el.innerText);
               try {
                 await navigator.clipboard.writeText(text);
                 btn.dataset.copied = 'true';
