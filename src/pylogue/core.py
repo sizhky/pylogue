@@ -67,9 +67,22 @@ def render_cards(cards):
         )
     return Div(
         *rows,
+        Div(id="scroll-anchor"),
         Input(type="hidden", id="chat-data", value=data_json),
         id="cards",
         cls="divide-y divide-slate-200",
+    )
+
+
+def render_assistant_update(card):
+    card_id = card.get("id", "")
+    assistant_id = f"assistant-{card_id}" if card_id else ""
+    return Div(
+        card.get("answer", "") or "…",
+        id=assistant_id if assistant_id else None,
+        data_raw_b64=base64.b64encode((card.get("answer", "") or "").encode("utf-8")).decode("ascii"),
+        cls="marked text-base text-left",
+        hx_swap_oob="true",
     )
 
 
@@ -82,6 +95,46 @@ def get_core_headers(include_markdown: bool = True):
                 import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
                 let markdownRendering = false;
+                let pendingScrollState = null;
+
+                const getScrollState = () => {
+                    const scrollElement = document.scrollingElement || document.documentElement;
+                    if (!scrollElement) return null;
+                    const maxScrollTop = scrollElement.scrollHeight - scrollElement.clientHeight;
+                    const atBottom = maxScrollTop - scrollElement.scrollTop < 24;
+                    return { top: scrollElement.scrollTop, atBottom };
+                };
+
+                const restoreScrollState = (state) => {
+                    if (!state) return;
+                    const scrollElement = document.scrollingElement || document.documentElement;
+                    if (!scrollElement) return;
+                    if (state.atBottom) {
+                        scrollElement.scrollTop = scrollElement.scrollHeight;
+                    } else {
+                        scrollElement.scrollTop = state.top;
+                    }
+                };
+
+                const forceScrollToBottom = () => {
+                    const scrollElement = document.scrollingElement || document.documentElement;
+                    if (!scrollElement) return;
+                    const anchor = document.getElementById('scroll-anchor');
+                    const apply = () => {
+                        if (anchor) {
+                            anchor.scrollIntoView({ block: 'end' });
+                        } else {
+                            scrollElement.scrollTop = scrollElement.scrollHeight;
+                        }
+                    };
+                    requestAnimationFrame(() => {
+                        apply();
+                        setTimeout(apply, 0);
+                        setTimeout(apply, 50);
+                        setTimeout(apply, 150);
+                    });
+                };
+                window.__forceScrollToBottom = forceScrollToBottom;
 
                 const decodeB64 = (value) => {
                     if (!value) return '';
@@ -156,6 +209,32 @@ def get_core_headers(include_markdown: bool = True):
 
                 document.body.addEventListener('htmx:afterSwap', (event) => {
                     renderMarkdown(event.target || document);
+                });
+
+                document.body.addEventListener('htmx:beforeSwap', (event) => {
+                    const target = event.detail && event.detail.target;
+                    const cardsRoot = target && (target.closest ? target.closest('#cards') : null);
+                    if (cardsRoot) {
+                        pendingScrollState = getScrollState();
+                    }
+                });
+
+                document.body.addEventListener('htmx:afterSwap', (event) => {
+                    const target = event.detail && event.detail.target;
+                    const cardsRoot = target && (target.closest ? target.closest('#cards') : null);
+                    if (cardsRoot) {
+                        const state = pendingScrollState;
+                        pendingScrollState = null;
+                        if (state && state.atBottom) {
+                            restoreScrollState(state);
+                        } else {
+                            forceScrollToBottom();
+                        }
+                    }
+                });
+
+                document.body.addEventListener('htmx:wsAfterMessage', () => {
+                    forceScrollToBottom();
                 });
                 """,
                 type="module",
@@ -615,6 +694,10 @@ def get_core_headers(include_markdown: bool = True):
                 border-top: 1px solid #e2e8f0;
                 margin: 20px 0;
             }
+            #cards,
+            .chat-panel {
+                overflow-anchor: none;
+            }
             .copy-btn {
                 border: 1px solid #e2e8f0;
                 border-radius: 6px;
@@ -711,6 +794,63 @@ def get_core_headers(include_markdown: bool = True):
                 setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
               }
             });
+            document.body.addEventListener('htmx:wsAfterSend', () => {
+              const input = document.getElementById('msg');
+              if (!input) return;
+              input.value = '';
+            });
+            (function initScrollDebug() {
+              const debug = [];
+              const maxEntries = 300;
+              const getScrollTop = () => {
+                const el = document.scrollingElement || document.documentElement;
+                return el ? el.scrollTop : 0;
+              };
+              const getActive = () => {
+                const el = document.activeElement;
+                if (!el) return null;
+                return { tag: el.tagName, id: el.id || '', cls: el.className || '' };
+              };
+              const push = (type, data) => {
+                debug.push({
+                  t: Date.now(),
+                  type,
+                  scrollTop: getScrollTop(),
+                  active: getActive(),
+                  ...data,
+                });
+                if (debug.length > maxEntries) debug.shift();
+              };
+              window.__scrollDebug = debug;
+              window.__dumpScrollDebug = () => JSON.stringify(debug, null, 2);
+
+              let lastScrollTop = getScrollTop();
+              let scrollTimer = null;
+              document.addEventListener('scroll', () => {
+                if (scrollTimer) return;
+                scrollTimer = requestAnimationFrame(() => {
+                  scrollTimer = null;
+                  const current = getScrollTop();
+                  if (current !== lastScrollTop) {
+                    lastScrollTop = current;
+                    push('scroll', {});
+                  }
+                });
+              }, { passive: true });
+
+              const logSwap = (label, event) => {
+                const target = event && event.detail && event.detail.target;
+                push(label, {
+                  targetId: target ? (target.id || '') : '',
+                  targetTag: target ? target.tagName : '',
+                });
+              };
+              document.body.addEventListener('htmx:beforeSwap', (e) => logSwap('beforeSwap', e));
+              document.body.addEventListener('htmx:afterSwap', (e) => logSwap('afterSwap', e));
+              document.body.addEventListener('htmx:wsBeforeMessage', (e) => logSwap('wsBeforeMessage', e));
+              document.body.addEventListener('htmx:wsAfterMessage', (e) => logSwap('wsAfterMessage', e));
+              document.body.addEventListener('focusin', () => push('focusin', {}));
+            })();
             """,
             type="module",
         )
@@ -791,6 +931,8 @@ def register_routes(
                                 hx_ext="ws",
                                 ws_connect=ws_path,
                                 ws_send=True,
+                                hx_target="#cards",
+                                hx_swap="outerHTML",
                                 cls="flex flex-col sm:flex-row gap-3 items-stretch pt-4",
                             ),
                             cls="chat-panel space-y-4",
@@ -833,15 +975,15 @@ def register_routes(
         if inspect.isasyncgen(result):
             async for chunk in result:
                 cards[-1]["answer"] += str(chunk)
-                await send(render_cards(cards))
+                await send(render_assistant_update(cards[-1]))
         else:
             if inspect.isawaitable(result):
                 result = await result
             for ch in str(result):
                 cards[-1]["answer"] += ch
-                await send(render_cards(cards))
+                await send(render_assistant_update(cards[-1]))
 
-        await send(render_input())
+        return
 
 
 def main(
