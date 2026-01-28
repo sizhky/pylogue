@@ -19,64 +19,39 @@ If greeted, talk about your capabilities such as telling time, drawing mermaid c
 All your mermaid diagrams should have pastel colors where the colors should be appropriate to the text in the block.
 """
 
-if 1:
-    agent = Agent(
-        "openai:gpt-4o-mini",
-        system_prompt=system_prompt,
-    )
-    deps = None
+agent = Agent(
+    "openai:gpt-4o-mini",
+    system_prompt=system_prompt,
+)
+deps = None
 
-    @agent.tool_plain
-    def time_now(timezone: str = "UTC") -> str:
-        """Get the current time in the specified timezone."""
-        from datetime import datetime
-        import pytz
+@agent.tool_plain
+def time_now(timezone: str = "UTC") -> str:
+    """Get the current time in the specified timezone."""
+    from datetime import datetime
+    import pytz
 
-        tz = pytz.timezone(timezone)
-        return datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
-
-else:
-    import sys
-    # sys.path.append('/Users/yeshwanth/Code/Divami/client-projects/optinn/anveeksha/src/anveeksha/test_agent_day_0/')
-    # from agent import agent
-    sys.path.append('/home/yeshwanth/projects/optinn/anveeksha/src/anveeksha/')
-    from ChatSCM2_agent import rca_agent as agent
-    from ChatSCM2_agent.deps import Deps
-    from ChatSCM2_agent.config import config
-    from ChatSCM2_agent.oracle_client import OracleClient
-
-    db = OracleClient(
-        user=config.oracle.user,
-        password=config.oracle.password,
-        host=config.oracle.host,
-        port=config.oracle.port,
-        service_name=config.oracle.service_name,
-    )
-    # Initialize dependencies
-    deps = Deps(
-        db=db,
-        owner="SCPOMGR",
-        schema_cache={},
-    )
-
+    tz = pytz.timezone(timezone)
+    return datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 def app_factory():
     return create_core_app(
         responder_factory=lambda: PydanticAIResponder(agent=agent, agent_deps=deps),
         tag_line="PYDANTIC AI",
-        tag_line_href="/",
+        tag_line_href="https://ai.divami.com",
         title="Pydantic AI Chat",
-        subtitle="Streaming tokens from PydanticAI over WebSockets.",
+        subtitle="Powerful AI chat with Pydantic-ai Agents. Supports tools, mermaid diagrams, raw html embedding and more.",
     )
 
 
 if __name__ == "__main__":
+    # Run with: python -m scripts.examples.ai.pylogue_demo_app
     import uvicorn
 
     uvicorn.run(
         "scripts.examples.ai.pydantic_ai_app:app_factory",
         host="0.0.0.0",
-        port=5002,
+        port=5004,
         reload=True,
         factory=True,
     )
