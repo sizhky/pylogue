@@ -13,7 +13,8 @@ class PydanticAIResponder:
         "Finally the environment supports mermaid diagrams, so you can create diagrams using mermaid syntax. with ```mermaid ... ``` blocks."
         "Always generate (block appropriate) css based colorful mermaid diagrams (e.g., classDef evaporation fill:#add8e6,stroke:#333,stroke-width:2px) when appropriate to illustrate concepts."
         "also ensure in mermaid blocks you wrap the text with double quotes to avoid syntax errors."
-        "prefer vertical layouts for flowcharts and sequence diagrams."
+        "prefer vertical layouts for flowcharts and sequence diagrams. "
+        "Render math using LaTeX syntax within $$ ... $$ blocks or inline with $ ... $."
     )
     
     def __init__(self, agent: Any, agent_deps: Optional[Any] = None):
