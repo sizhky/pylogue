@@ -1,7 +1,7 @@
 # fasthtml solveit
 from pylogue.core import main as create_core_app
 from dotenv import load_dotenv
-import logfire
+import logfire, os
 from pydantic_ai import Agent
 from pylogue.integrations.pydantic_ai import PydanticAIResponder
 
@@ -15,9 +15,11 @@ logfire.instrument_pydantic_ai()
 
 system_prompt = """
 You talk only as much as needed and not a word more.
+If greeted, talk about your capabilities such as telling time, drawing mermaid charts in the form of "I can do" example bullet points
+All your mermaid diagrams should have pastel colors where the colors should be appropriate to the text in the block.
 """
 
-if 0:
+if 1:
     agent = Agent(
         "openai:gpt-4o-mini",
         system_prompt=system_prompt,

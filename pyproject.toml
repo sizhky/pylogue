@@ -28,6 +28,8 @@ dependencies = [
   "pymdown-extensions>=10.16.1",
   "python-fasthtml>=0.12.29",
   "monsterui",
+  "logfire>=4.20.0",
+  "pydantic-ai>=1.48.0",
 ]
 
 [project.optional-dependencies]
