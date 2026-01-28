@@ -699,8 +699,8 @@ def get_core_headers(include_markdown: bool = True):
                 box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
             }
             .marked .mermaid-wrapper {
-                min-height: 260px;
-                max-height: 70vh;
+                min-height: 0;
+                height: fit-content;
                 overflow: hidden;
                 position: relative;
             }
