@@ -293,6 +293,47 @@ def get_core_headers(include_markdown: bool = True):
                     });
                 };
 
+                const addCopyButtons = (root) => {
+                    const blocks = root.querySelectorAll('pre');
+                    blocks.forEach((pre) => {
+                        if (pre.dataset.copyBound === 'true') return;
+                        const code = pre.querySelector('code');
+                        if (!code) return;
+                        pre.dataset.copyBound = 'true';
+                        pre.classList.add('codeblock');
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'code-copy-btn';
+                        btn.setAttribute('aria-label', 'Copy code');
+                        btn.setAttribute('title', 'Copy code');
+                        btn.innerHTML = `
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="9" y="9" width="10" height="10" rx="2"></rect>
+                                <rect x="5" y="5" width="10" height="10" rx="2"></rect>
+                            </svg>
+                        `;
+                        btn.addEventListener('click', async (event) => {
+                            event.preventDefault();
+                            const text = code.innerText || code.textContent || '';
+                            try {
+                                await navigator.clipboard.writeText(text);
+                                btn.dataset.copied = 'true';
+                                setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
+                            } catch {
+                                const textarea = document.createElement('textarea');
+                                textarea.value = text;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                                btn.dataset.copied = 'true';
+                                setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
+                            }
+                        });
+                        pre.appendChild(btn);
+                    });
+                };
+
                 const renderMarkdown = (root = document) => {
                     const nodes = root.querySelectorAll('.marked');
                     if (!marked || typeof marked.parse !== 'function') return;
@@ -314,6 +355,7 @@ def get_core_headers(include_markdown: bool = True):
                             el.innerHTML = `${prefixHtml}${split.html}${suffixHtml}`;
                             renderMath(el);
                             highlightCode(el);
+                            addCopyButtons(el);
                             el.dataset.renderedSource = source;
                             return;
                         }
@@ -324,6 +366,7 @@ def get_core_headers(include_markdown: bool = True):
                             el.innerHTML = marked.parse(safeSource);
                             renderMath(el);
                             highlightCode(el);
+                            addCopyButtons(el);
                         }
                         el.dataset.renderedSource = source;
                     });
@@ -808,6 +851,7 @@ def get_core_headers(include_markdown: bool = True):
                 border: 1px solid #e2e8f0;
                 overflow: auto;
                 text-align: left;
+                position: relative;
             }
             .marked {
                 font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -824,6 +868,44 @@ def get_core_headers(include_markdown: bool = True):
                 padding: 0;
                 border-radius: 0;
                 text-align: left;
+            }
+            .marked pre .code-copy-btn {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                background: rgba(248, 250, 252, 0.9);
+                color: #64748b;
+                opacity: 0;
+                transform: translateY(-2px);
+                transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+                cursor: pointer;
+                pointer-events: none;
+            }
+            .marked pre:hover .code-copy-btn,
+            .marked pre:focus-within .code-copy-btn {
+                opacity: 1;
+                transform: translateY(0);
+                pointer-events: auto;
+            }
+            .marked pre .code-copy-btn svg {
+                width: 16px;
+                height: 16px;
+            }
+            .marked pre .code-copy-btn:hover {
+                color: #0f172a;
+                border-color: #cbd5f5;
+            }
+            .marked pre .code-copy-btn[data-copied="true"] {
+                color: #16a34a;
+                border-color: #86efac;
+                background: #f0fdf4;
             }
             .marked .mermaid-container {
                 position: relative;
