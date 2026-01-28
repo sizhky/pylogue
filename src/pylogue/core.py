@@ -90,6 +90,13 @@ def render_assistant_update(card):
 def get_core_headers(include_markdown: bool = True):
     headers = list(Theme.slate.headers())
     if include_markdown:
+        headers.extend(
+            [
+                Link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"),
+                Script(src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"),
+                Script(src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"),
+            ]
+        )
         headers.append(
             Script(
                 """
@@ -97,6 +104,7 @@ def get_core_headers(include_markdown: bool = True):
 
                 let markdownRendering = false;
                 let pendingScrollState = null;
+                const KATEX_DOLLAR_PLACEHOLDER = '@@PYLOGUE_DOLLAR@@';
 
                 const getScrollState = () => {
                     const scrollElement = document.scrollingElement || document.documentElement;
@@ -179,6 +187,53 @@ def get_core_headers(include_markdown: bool = True):
                     }
                 };
 
+                const protectEscapedDollars = (md) => {
+                    if (!md) return md || '';
+                    const blocks = [];
+                    const replaceBlock = (match) => {
+                        blocks.push(match);
+                        return `__PYLOGUE_CODEBLOCK_${blocks.length - 1}__`;
+                    };
+                    md = md.replace(/(```+|~~~+)[\\s\\S]*?\\1/g, replaceBlock);
+                    md = md.replace(/(`+)([^`]*?)\\1/g, replaceBlock);
+                    md = md.replace(/(\\\\+)\\$/g, (match, slashes) => {
+                        return '\\\\'.repeat(slashes.length - 1) + KATEX_DOLLAR_PLACEHOLDER;
+                    });
+                    blocks.forEach((block, index) => {
+                        md = md.replace(`__PYLOGUE_CODEBLOCK_${index}__`, block);
+                    });
+                    return md;
+                };
+
+                const replaceDollarPlaceholders = (root) => {
+                    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+                    const nodes = [];
+                    let node;
+                    while ((node = walker.nextNode())) {
+                        if (node.nodeValue && node.nodeValue.includes(KATEX_DOLLAR_PLACEHOLDER)) {
+                            nodes.push(node);
+                        }
+                    }
+                    nodes.forEach((textNode) => {
+                        textNode.nodeValue = textNode.nodeValue
+                            .split(KATEX_DOLLAR_PLACEHOLDER)
+                            .join('$');
+                    });
+                };
+
+                const renderMath = (root) => {
+                    if (typeof renderMathInElement !== 'function') return;
+                    renderMathInElement(root, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false },
+                        ],
+                        throwOnError: false,
+                        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                    });
+                    replaceDollarPlaceholders(root);
+                };
+
                 const renderMarkdown = (root = document) => {
                     const nodes = root.querySelectorAll('.marked');
                     if (nodes.length === 0) return;
@@ -189,7 +244,9 @@ def get_core_headers(include_markdown: bool = True):
                         const source = rawB64 ? decodeB64(rawB64) : (rawAttr !== null ? rawAttr : el.textContent);
                         if (el.dataset.renderedSource === source) return;
                         if (el.dataset.mermaidDirty === 'true') return;
-                        el.innerHTML = marked.parse(source);
+                        const safeSource = protectEscapedDollars(source);
+                        el.innerHTML = marked.parse(safeSource);
+                        renderMath(el);
                         el.dataset.renderedSource = source;
                     });
                     markdownRendering = false;
