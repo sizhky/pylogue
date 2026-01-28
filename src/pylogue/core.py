@@ -205,6 +205,34 @@ def get_core_headers(include_markdown: bool = True):
                     return md;
                 };
 
+                const looksLikeHtmlBlock = (text) => {
+                    if (!text) return false;
+                    const trimmed = text.trim();
+                    if (!trimmed.startsWith('<') || !trimmed.endsWith('>')) return false;
+                    return /<\\/?[a-zA-Z][\\s\\S]*?>/.test(trimmed);
+                };
+
+                const dedentHtml = (text) => {
+                    if (!looksLikeHtmlBlock(text)) return text;
+                    const lines = text.split(/\\r?\\n/);
+                    let minIndent = null;
+                    lines.forEach((line) => {
+                        if (!line.trim()) return;
+                        const match = line.match(/^[ \\t]+/);
+                        if (!match) {
+                            minIndent = 0;
+                            return;
+                        }
+                        const indent = match[0].length;
+                        if (minIndent === null || indent < minIndent) {
+                            minIndent = indent;
+                        }
+                    });
+                    if (!minIndent) return text;
+                    const strip = new RegExp(`^[ \\\\t]{0,${minIndent}}`);
+                    return lines.map((line) => line.replace(strip, '')).join('\\n');
+                };
+
                 const replaceDollarPlaceholders = (root) => {
                     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
                     const nodes = [];
@@ -244,9 +272,14 @@ def get_core_headers(include_markdown: bool = True):
                         const source = rawB64 ? decodeB64(rawB64) : (rawAttr !== null ? rawAttr : el.textContent);
                         if (el.dataset.renderedSource === source) return;
                         if (el.dataset.mermaidDirty === 'true') return;
-                        const safeSource = protectEscapedDollars(source);
-                        el.innerHTML = marked.parse(safeSource);
-                        renderMath(el);
+                        const normalizedSource = dedentHtml(source);
+                        if (looksLikeHtmlBlock(normalizedSource)) {
+                            el.innerHTML = normalizedSource;
+                        } else {
+                            const safeSource = protectEscapedDollars(normalizedSource);
+                            el.innerHTML = marked.parse(safeSource);
+                            renderMath(el);
+                        }
                         el.dataset.renderedSource = source;
                     });
                     markdownRendering = false;
@@ -1058,7 +1091,7 @@ def register_routes(
                         Div(
                             tag_line_node,
                             H1(title, cls="text-3xl md:text-4xl font-semibold text-slate-900"),
-                            P(subtitle, cls=TextPresets.muted_sm),
+                            P(subtitle, cls=(TextPresets.muted_sm, "text-slate-600")),
                             cls="space-y-2",
                         ),
                         Div(
