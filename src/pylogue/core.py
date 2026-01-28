@@ -345,7 +345,6 @@ def get_core_headers(include_markdown: bool = True):
                     wrapper.style.touchAction = 'none';
 
                     wrapper.addEventListener('wheel', (e) => {
-                        if (!e.ctrlKey && !e.metaKey && !e.altKey) return;
                         e.preventDefault();
                         const currentSvg = wrapper.querySelector('svg');
                         if (!currentSvg) return;
@@ -617,7 +616,8 @@ def get_core_headers(include_markdown: bool = True):
                 border-left: 3px solid #cbd5f5;
             }
             .chat-row-assistant {
-                background: #ffffff;
+                background: #f8fafc;
+                border-left: 3px solid #e2e8f0;
             }
             .chat-row-block {
                 margin: 0;
@@ -750,6 +750,28 @@ def get_core_headers(include_markdown: bool = True):
             .chat-panel {
                 overflow-anchor: none;
             }
+            .marked details.tool-call {
+                background: #f1f5f9;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 6px 8px;
+                color: #475569;
+                margin: 14px 0;
+                font-size: 0.85rem;
+            }
+            .marked details.tool-call summary {
+                cursor: pointer;
+                color: #64748b;
+                font-weight: 600;
+                font-size: 0.85rem;
+            }
+            .marked details.tool-call pre {
+                background: #e2e8f0;
+                color: #334155;
+                border-color: #cbd5f5;
+                padding: 8px 10px;
+                font-size: 0.82rem;
+            }
             .copy-btn {
                 border: 1px solid #e2e8f0;
                 border-radius: 6px;
@@ -801,6 +823,16 @@ def get_core_headers(include_markdown: bool = True):
         Script(
             """
             document.documentElement.classList.remove('dark');
+            const decodeCopyB64 = (value) => {
+              if (!value) return '';
+              try {
+                const binary = atob(value);
+                const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+                return new TextDecoder('utf-8').decode(bytes);
+              } catch {
+                return '';
+              }
+            };
             document.addEventListener('click', async (event) => {
               const btn = event.target.closest('.copy-btn');
               if (!btn) return;
@@ -809,7 +841,7 @@ def get_core_headers(include_markdown: bool = True):
               const el = document.getElementById(targetId);
               if (!el) return;
               const rawB64 = el.getAttribute('data-raw-b64');
-              const text = rawB64 ? decodeB64(rawB64) : (el.getAttribute('data-raw') || el.innerText);
+              const text = rawB64 ? decodeCopyB64(rawB64) : (el.getAttribute('data-raw') || el.innerText);
               try {
                 await navigator.clipboard.writeText(text);
                 btn.dataset.copied = 'true';

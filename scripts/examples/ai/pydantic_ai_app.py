@@ -78,7 +78,7 @@ class PydanticAIStreamingResponder:
             safe_result = html.escape(_safe_json(result))
             return (
                 "\n\n"
-                f'<details class="tool-call"><summary>Tool: {tool_label}</summary>'
+                f'<details class="tool-call"><summary>Tool Call: {tool_label}</summary>'
                 f"<div><strong>Args</strong></div>"
                 f"<pre><code>{safe_args}</code></pre>"
                 f"<div><strong>Result</strong></div>"
