@@ -16,12 +16,13 @@ class EchoResponder:
 
 
 def render_input():
-    return Input(
+    return Textarea(
         id="msg",
         name="msg",
         placeholder="Say hi...",
         autofocus=True,
-        cls="uk-input w-full bg-white border-slate-300 focus:border-slate-500 focus:ring-2 focus:ring-slate-200",
+        rows=3,
+        cls="uk-textarea w-full bg-white border-slate-300 focus:border-slate-500 focus:ring-2 focus:ring-slate-200 font-mono",
     )
 
 
@@ -612,7 +613,8 @@ def get_core_headers(include_markdown: bool = True):
                 padding: 20px;
             }
             .chat-row-user {
-                background: #f8fafc;
+                background: #e2e8f0;
+                border-left: 3px solid #cbd5f5;
             }
             .chat-row-assistant {
                 background: #ffffff;
@@ -670,6 +672,9 @@ def get_core_headers(include_markdown: bool = True):
                 border-radius: 12px;
                 border: 1px solid #e2e8f0;
                 overflow: auto;
+            }
+            .marked {
+                font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
             }
             .marked code {
                 background: #f1f5f9;
@@ -846,6 +851,15 @@ def get_core_headers(include_markdown: bool = True):
               if (!input) return;
               input.value = '';
             });
+            document.addEventListener('keydown', (event) => {
+              if (event.key !== 'Enter') return;
+              const isSubmitCombo = event.metaKey || event.ctrlKey;
+              if (!isSubmitCombo) return;
+              const form = document.getElementById('form');
+              if (!form) return;
+              event.preventDefault();
+              form.requestSubmit();
+            });
             (function initScrollDebug() {
               const debug = [];
               const maxEntries = 300;
@@ -973,7 +987,11 @@ def register_routes(
                             Div(render_cards([])),
                             Form(
                                 render_input(),
-                                Button("Send", cls=ButtonT.primary, type="submit"),
+                                Div(
+                                    Button("Send", cls=ButtonT.primary, type="submit"),
+                                    P("Cmd/Ctrl+Enter to send", cls="text-xs text-slate-400"),
+                                    cls="flex flex-col gap-2 items-stretch",
+                                ),
                                 id="form",
                                 hx_ext="ws",
                                 ws_connect=ws_path,
