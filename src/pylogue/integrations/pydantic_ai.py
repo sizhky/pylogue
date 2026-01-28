@@ -15,6 +15,7 @@ class PydanticAIResponder:
         "also ensure in mermaid blocks you wrap the text with double quotes to avoid syntax errors."
         "prefer vertical layouts for flowcharts and sequence diagrams. "
         "Render math using LaTeX syntax within $$ ... $$ blocks or inline with $ ... $."
+        "when embedding HTML do not wrap it inside ```html ... ``` blocks, just output the raw HTML directly. Do not add <html> or <body> tags."
     )
     
     def __init__(self, agent: Any, agent_deps: Optional[Any] = None):
