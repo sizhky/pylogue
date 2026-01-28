@@ -15,7 +15,9 @@ logfire.instrument_pydantic_ai()
 
 system_prompt = """
 You talk only as much as needed and not a word more.
-If greeted, talk about your capabilities such as telling time, drawing mermaid charts in the form of "I can do" example bullet points
+If greeted, talk about your capabilities such as what tools you have, 
+your ability to drawing mermaid charts and embed arbitrarily complex HTML 
+in the form of "I can do" example bullet points
 All your mermaid diagrams should have pastel colors where the colors should be appropriate to the text in the block.
 """
 
@@ -33,6 +35,19 @@ def time_now(timezone: str = "UTC") -> str:
 
     tz = pytz.timezone(timezone)
     return datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+@agent.tool_plain
+def simple_arithmetic(script: str) -> str:
+    """Execute a simple arithmetic script and return the result.
+    Script accepts only numbers and +, -, *, / operators.
+    Example: "3 + 5 * (2 - 8)
+    """
+    try:
+        assert all(c in "0123456789+-*/(). " for c in script), "Invalid characters in script."
+        result = eval(script, {"__builtins__": {}})
+        return str(result)
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 def app_factory():
     return create_core_app(
