@@ -51,7 +51,7 @@ def simple_arithmetic(script: str) -> str:
 
 def app_factory():
     return create_core_app(
-        responder_factory=lambda: PydanticAIResponder(agent=agent, agent_deps=deps),
+        # responder_factory=lambda: PydanticAIResponder(agent=agent, agent_deps=deps),
         tag_line="PYDANTIC AI",
         tag_line_href="https://ai.divami.com",
         title="Pydantic AI Chat",

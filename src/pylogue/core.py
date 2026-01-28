@@ -9,9 +9,9 @@ import base64
 
 class EchoResponder:
     async def __call__(self, message: str):
-        response = f"ECHO: {message}"
+        response = f"ECHO:\n{message}"
         for ch in response:
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.005)
             yield ch
 
 
@@ -93,9 +93,16 @@ def get_core_headers(include_markdown: bool = True):
         headers.extend(
             [
                 Link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"),
+                Link(
+                    rel="stylesheet",
+                    href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/github.min.css",
+                ),
                 Script(src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"),
                 Script(src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"),
             ]
+        )
+        headers.append(
+            Script(src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js")
         )
         headers.append(
             Script(
@@ -233,6 +240,20 @@ def get_core_headers(include_markdown: bool = True):
                     return lines.map((line) => line.replace(strip, '')).join('\\n');
                 };
 
+                const splitDivHtmlBlock = (text) => {
+                    if (!text) return null;
+                    if (text.includes('```')) return null;
+                    const start = text.indexOf('<div');
+                    const end = text.lastIndexOf('</div>');
+                    if (start === -1 || end === -1 || end <= start) return null;
+                    const htmlEnd = end + 6;
+                    return {
+                        prefix: text.slice(0, start),
+                        html: text.slice(start, htmlEnd),
+                        suffix: text.slice(htmlEnd),
+                    };
+                };
+
                 const replaceDollarPlaceholders = (root) => {
                     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
                     const nodes = [];
@@ -262,8 +283,19 @@ def get_core_headers(include_markdown: bool = True):
                     replaceDollarPlaceholders(root);
                 };
 
+                const highlightCode = (root) => {
+                    if (!window.hljs || typeof window.hljs.highlightElement !== 'function') return;
+                    const blocks = root.querySelectorAll('pre code');
+                    blocks.forEach((block) => {
+                        if (block.dataset.hljsApplied === 'true') return;
+                        window.hljs.highlightElement(block);
+                        block.dataset.hljsApplied = 'true';
+                    });
+                };
+
                 const renderMarkdown = (root = document) => {
                     const nodes = root.querySelectorAll('.marked');
+                    if (!marked || typeof marked.parse !== 'function') return;
                     if (nodes.length === 0) return;
                     markdownRendering = true;
                     nodes.forEach((el) => {
@@ -273,12 +305,25 @@ def get_core_headers(include_markdown: bool = True):
                         if (el.dataset.renderedSource === source) return;
                         if (el.dataset.mermaidDirty === 'true') return;
                         const normalizedSource = dedentHtml(source);
+                        const split = splitDivHtmlBlock(normalizedSource);
+                        if (split) {
+                            const safePrefix = protectEscapedDollars(split.prefix);
+                            const safeSuffix = protectEscapedDollars(split.suffix);
+                            const prefixHtml = safePrefix ? marked.parse(safePrefix) : '';
+                            const suffixHtml = safeSuffix ? marked.parse(safeSuffix) : '';
+                            el.innerHTML = `${prefixHtml}${split.html}${suffixHtml}`;
+                            renderMath(el);
+                            highlightCode(el);
+                            el.dataset.renderedSource = source;
+                            return;
+                        }
                         if (looksLikeHtmlBlock(normalizedSource)) {
                             el.innerHTML = normalizedSource;
                         } else {
                             const safeSource = protectEscapedDollars(normalizedSource);
                             el.innerHTML = marked.parse(safeSource);
                             renderMath(el);
+                            highlightCode(el);
                         }
                         el.dataset.renderedSource = source;
                     });
@@ -762,11 +807,12 @@ def get_core_headers(include_markdown: bool = True):
                 border-radius: 12px;
                 border: 1px solid #e2e8f0;
                 overflow: auto;
+                text-align: left;
             }
             .marked {
                 font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
             }
-            .marked code {
+            .marked :not(pre) > code {
                 background: #f1f5f9;
                 color: #0f172a;
                 padding: 0.15rem 0.35rem;
@@ -775,9 +821,9 @@ def get_core_headers(include_markdown: bool = True):
             }
             .marked pre code {
                 background: transparent;
-                color: inherit;
                 padding: 0;
                 border-radius: 0;
+                text-align: left;
             }
             .marked .mermaid-container {
                 position: relative;
