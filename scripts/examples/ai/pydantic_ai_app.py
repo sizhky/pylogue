@@ -13,6 +13,7 @@ logfire.configure(
 )
 logfire.instrument_pydantic_ai()
 
+
 system_prompt = """
 You talk only as much as needed and not a word more.
 """

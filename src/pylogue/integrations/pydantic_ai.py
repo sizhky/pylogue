@@ -53,6 +53,30 @@ class PydanticAIResponder:
         """Append additional instructions to the agent's system prompt."""
         if additional_instructions:
             self._prompt_state["additional"].append(additional_instructions)
+
+    def load_history(self, cards) -> None:
+        """Load conversation history from Pylogue cards."""
+        try:
+            from pydantic_ai import messages as pai_messages
+        except Exception:
+            return
+        history = []
+        for card in cards or []:
+            question = card.get("question")
+            answer = card.get("answer")
+            if question is not None:
+                history.append(
+                    pai_messages.ModelRequest(
+                        parts=[pai_messages.UserPromptPart(content=str(question))]
+                    )
+                )
+            if answer is not None:
+                history.append(
+                    pai_messages.ModelResponse(
+                        parts=[pai_messages.TextPart(content=str(answer))]
+                    )
+                )
+        self.message_history = history
     
     async def __call__(self, text: str, context=None):
         import asyncio

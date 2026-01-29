@@ -6,6 +6,7 @@ import inspect
 import json
 import base64
 
+IMPORT_PREFIX = "__PYLOGUE_IMPORT__:"
 
 class EchoResponder:
     async def __call__(self, message: str):
@@ -73,6 +74,16 @@ def render_cards(cards):
         id="cards",
         cls="divide-y divide-slate-200",
     )
+
+
+def render_chat_data(cards):
+    return Input(
+        type="hidden",
+        id="chat-data",
+        value=json.dumps(cards),
+        hx_swap_oob="true",
+    )
+
 
 
 def render_assistant_update(card):
@@ -1034,6 +1045,17 @@ def get_core_headers(include_markdown: bool = True):
                 border-color: #86efac;
                 background: #f0fdf4;
             }
+            .sr-only {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border: 0;
+            }
             """
         )
     )
@@ -1081,19 +1103,42 @@ def get_core_headers(include_markdown: bool = True):
               const input = document.getElementById('chat-data');
               if (!input) return;
               const text = input.value || '[]';
+              const blob = new Blob([text], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+              link.href = url;
+              link.download = `pylogue-conversation-${timestamp}.json`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              btn.dataset.copied = 'true';
+              setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
+            });
+            document.addEventListener('click', (event) => {
+              const btn = event.target.closest('.upload-chat-btn');
+              if (!btn) return;
+              const input = document.getElementById('chat-upload');
+              if (!input) return;
+              input.click();
+            });
+            document.addEventListener('change', async (event) => {
+              const input = event.target;
+              if (!input || input.id !== 'chat-upload') return;
+              const file = input.files && input.files[0];
+              if (!file) return;
               try {
-                await navigator.clipboard.writeText(text);
-                btn.dataset.copied = 'true';
-                setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
-              } catch (err) {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                btn.dataset.copied = 'true';
-                setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
+                const text = await file.text();
+                const data = JSON.parse(text);
+                const payload = JSON.stringify(data);
+                const msgInput = document.getElementById('msg');
+                const form = document.getElementById('form');
+                if (!msgInput || !form) return;
+                msgInput.value = `__PYLOGUE_IMPORT__:${payload}`;
+                form.requestSubmit();
+              } finally {
+                input.value = '';
               }
             });
             document.body.addEventListener('htmx:wsAfterSend', () => {
@@ -1224,14 +1269,26 @@ def register_routes(
                         ),
                         Div(
                             Button(
-                                UkIcon("copy"),
-                                Span("Copy conversation as JSON", cls="text-xs font-medium"),
+                                UkIcon("download"),
                                 cls="uk-button uk-button-text copy-chat-btn",
                                 type="button",
-                                aria_label="Copy conversation as JSON",
-                                title="Copy conversation as JSON",
+                                aria_label="Download conversation JSON",
+                                title="Download conversation JSON",
                             ),
-                            cls="flex justify-end",
+                            Button(
+                                UkIcon("upload"),
+                                cls="uk-button uk-button-text upload-chat-btn",
+                                type="button",
+                                aria_label="Upload conversation JSON",
+                                title="Upload conversation JSON",
+                            ),
+                            Input(
+                                type="file",
+                                id="chat-upload",
+                                accept="application/json",
+                                cls="sr-only",
+                            ),
+                            cls="flex justify-end gap-2",
                         ),
                         Div(
                             Div(render_cards([])),
@@ -1283,6 +1340,57 @@ def register_routes(
         cards = session["cards"]
         session_responder = session["responder"]
 
+        if isinstance(msg, str) and msg.startswith(IMPORT_PREFIX):
+            payload = msg[len(IMPORT_PREFIX) :].strip()
+            try:
+                imported = json.loads(payload) if payload else []
+            except json.JSONDecodeError:
+                imported = []
+            normalized = []
+            if isinstance(imported, list):
+                if imported and all(isinstance(item, dict) and "role" in item for item in imported):
+                    pending_question = None
+                    for item in imported:
+                        role = item.get("role")
+                        content = item.get("content", "")
+                        if role == "User":
+                            pending_question = content
+                        elif role == "Assistant":
+                            if pending_question is None:
+                                continue
+                            normalized.append(
+                                {
+                                    "id": str(len(normalized)),
+                                    "question": pending_question,
+                                    "answer": content,
+                                }
+                            )
+                            pending_question = None
+                else:
+                    for item in imported:
+                        if not isinstance(item, dict):
+                            continue
+                        question = item.get("question")
+                        answer = item.get("answer")
+                        if question is None or answer is None:
+                            continue
+                        normalized.append(
+                            {
+                                "id": str(len(normalized)),
+                                "question": str(question),
+                                "answer": str(answer),
+                            }
+                        )
+            session["cards"] = normalized
+            if hasattr(session_responder, "load_history"):
+                try:
+                    session_responder.load_history(normalized)
+                except Exception:
+                    pass
+            await send(render_cards(normalized))
+            await send(render_chat_data(normalized))
+            return
+
         cards.append({"id": str(len(cards)), "question": msg, "answer": ""})
         await send(render_cards(cards))
 
@@ -1298,6 +1406,7 @@ def register_routes(
                 cards[-1]["answer"] += ch
                 await send(render_assistant_update(cards[-1]))
 
+        await send(render_chat_data(cards))
         return
 
 
