@@ -71,6 +71,7 @@ def render_cards(cards):
         *rows,
         Div(id="scroll-anchor"),
         Input(type="hidden", id="chat-data", value=data_json),
+        Input(type="hidden", id="chat-export", value=json.dumps({"cards": cards})),
         id="cards",
         cls="divide-y divide-slate-200",
     )
@@ -81,6 +82,27 @@ def render_chat_data(cards):
         type="hidden",
         id="chat-data",
         value=json.dumps(cards),
+        hx_swap_oob="true",
+    )
+
+def build_export_payload(cards, responder=None):
+    payload = {"cards": cards}
+    if responder is not None and hasattr(responder, "get_export_state"):
+        try:
+            meta = responder.get_export_state()
+        except Exception:
+            meta = None
+        if meta:
+            payload["meta"] = meta
+    return payload
+
+
+def render_chat_export(cards, responder=None):
+    payload = build_export_payload(cards, responder=responder)
+    return Input(
+        type="hidden",
+        id="chat-export",
+        value=json.dumps(payload),
         hx_swap_oob="true",
     )
 
@@ -1100,7 +1122,8 @@ def get_core_headers(include_markdown: bool = True):
             document.addEventListener('click', async (event) => {
               const btn = event.target.closest('.copy-chat-btn');
               if (!btn) return;
-              const input = document.getElementById('chat-data');
+              const exportInput = document.getElementById('chat-export');
+              const input = exportInput || document.getElementById('chat-data');
               if (!input) return;
               const text = input.value || '[]';
               const blob = new Blob([text], { type: 'application/json' });
@@ -1346,6 +1369,10 @@ def register_routes(
                 imported = json.loads(payload) if payload else []
             except json.JSONDecodeError:
                 imported = []
+            meta = None
+            if isinstance(imported, dict):
+                meta = imported.get("meta")
+                imported = imported.get("cards", [])
             normalized = []
             if isinstance(imported, list):
                 if imported and all(isinstance(item, dict) and "role" in item for item in imported):
@@ -1382,6 +1409,11 @@ def register_routes(
                             }
                         )
             session["cards"] = normalized
+            if meta is not None and hasattr(session_responder, "load_state"):
+                try:
+                    session_responder.load_state(meta)
+                except Exception:
+                    pass
             if hasattr(session_responder, "load_history"):
                 try:
                     session_responder.load_history(normalized)
@@ -1389,6 +1421,7 @@ def register_routes(
                     pass
             await send(render_cards(normalized))
             await send(render_chat_data(normalized))
+            await send(render_chat_export(normalized, responder=session_responder))
             return
 
         cards.append({"id": str(len(cards)), "question": msg, "answer": ""})
@@ -1407,6 +1440,7 @@ def register_routes(
                 await send(render_assistant_update(cards[-1]))
 
         await send(render_chat_data(cards))
+        await send(render_chat_export(cards, responder=session_responder))
         return
 
 

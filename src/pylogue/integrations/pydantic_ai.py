@@ -39,13 +39,7 @@ class PydanticAIResponder:
         if not getattr(agent, "_pylogue_prompt_registered", False):
             @self.agent.system_prompt
             def custom_instructions() -> str:
-                segments = []
-                if self._prompt_state.get("base_prompt"):
-                    segments.append(self._prompt_state["base_prompt"])
-                segments.append(self.pylogue_instructions)
-                if self._prompt_state["additional"]:
-                    segments.extend(self._prompt_state["additional"])
-                return "\n\n".join(segments)
+                return self._compose_system_prompt()
 
             agent._pylogue_prompt_registered = True
 
@@ -54,6 +48,37 @@ class PydanticAIResponder:
         if additional_instructions:
             self._prompt_state["additional"].append(additional_instructions)
 
+    def _compose_system_prompt(self) -> str:
+        segments = []
+        if self._prompt_state.get("base_prompt"):
+            segments.append(self._prompt_state["base_prompt"])
+        segments.append(self.pylogue_instructions)
+        if self._prompt_state["additional"]:
+            segments.extend(self._prompt_state["additional"])
+        return "\n\n".join(segments)
+
+    def get_export_state(self) -> dict:
+        """Return exportable system instruction state."""
+        return {
+            "prompt_state": {
+                "base_prompt": self._prompt_state.get("base_prompt", ""),
+                "additional": list(self._prompt_state.get("additional", [])),
+            },
+            "system_prompt": self._compose_system_prompt(),
+        }
+
+    def load_state(self, meta: dict) -> None:
+        """Restore system instruction state from exported metadata."""
+        if not isinstance(meta, dict):
+            return
+        prompt_state = meta.get("prompt_state") if isinstance(meta.get("prompt_state"), dict) else {}
+        if "base_prompt" in prompt_state:
+            self._prompt_state["base_prompt"] = prompt_state.get("base_prompt") or ""
+        if "additional" in prompt_state and isinstance(prompt_state.get("additional"), list):
+            self._prompt_state["additional"] = list(prompt_state.get("additional", []))
+        elif isinstance(meta.get("system_prompt"), str):
+            self._prompt_state["additional"] = [meta["system_prompt"]]
+
     def load_history(self, cards) -> None:
         """Load conversation history from Pylogue cards."""
         try:
@@ -61,6 +86,13 @@ class PydanticAIResponder:
         except Exception:
             return
         history = []
+        system_prompt = self._compose_system_prompt()
+        if system_prompt:
+            history.append(
+                pai_messages.ModelRequest(
+                    parts=[pai_messages.SystemPromptPart(content=system_prompt)]
+                )
+            )
         for card in cards or []:
             question = card.get("question")
             answer = card.get("answer")
