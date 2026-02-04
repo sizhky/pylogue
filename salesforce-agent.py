@@ -159,7 +159,11 @@ def render_altair_chart_py(soql_query: str, altair_python: str):
 
 def app_factory():
     return create_core_app(
-        responder_factory=lambda: PydanticAIResponder(agent=agent, agent_deps=deps),
+        responder_factory=lambda: PydanticAIResponder(
+            agent=agent,
+            agent_deps=deps,
+            show_tool_details=False,
+        ),
         tag_line="Divami AI",
         tag_line_href="https://ai.divami.com",
         title="Salesforce Query Assistant",
