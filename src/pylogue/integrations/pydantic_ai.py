@@ -12,7 +12,7 @@ class PydanticAIResponder:
         "The environment also supports markdown rendering, so you can use markdown syntax for formatting."
         "Finally the environment supports mermaid diagrams, so you can create diagrams using mermaid syntax. with ```mermaid ... ``` blocks."
         "Always generate (block appropriate) css based colorful mermaid diagrams (e.g., classDef evaporation fill:#add8e6,stroke:#333,stroke-width:2px) when appropriate to illustrate concepts."
-        "also ensure in mermaid blocks you wrap the text with double quotes to avoid syntax errors."
+        "also ensure in mermaid blocks you wrap the text with double quotes to avoid syntax errors, and <br> for line breaks instead of \\n"
         "prefer vertical layouts for flowcharts and sequence diagrams. "
         "Render math using LaTeX syntax within $$ ... $$ blocks or inline with $ ... $."
         "when embedding HTML do not wrap it inside ```html ... ``` blocks, just output the raw HTML directly. Do not add <html> or <body> tags."
@@ -132,8 +132,22 @@ class PydanticAIResponder:
             except TypeError:
                 return json.dumps(str(value), indent=2, sort_keys=True, ensure_ascii=True)
 
+        def _truncate(text: str, limit: int = 100) -> str:
+            if not isinstance(text, str):
+                return ""
+            return text if len(text) <= limit else f"{text[:limit//2]} ... (truncated) ... {text[-limit//2:]}"
+
         def _get_tool_call_id(part):
             return getattr(part, "tool_call_id", None) or getattr(part, "call_id", None)
+
+        def _unwrap_tool_return(part_or_result):
+            if isinstance(part_or_result, messages.BaseToolReturnPart):
+                return (
+                    part_or_result.tool_name,
+                    part_or_result.content,
+                    part_or_result.tool_call_id,
+                )
+            return None
 
         def _extract_tool_result(event):
             part = getattr(event, "part", None)
@@ -150,12 +164,17 @@ class PydanticAIResponder:
             result = getattr(event, "result", None)
             tool_name = getattr(event, "tool_name", None)
             call_id = getattr(event, "tool_call_id", None) or getattr(event, "call_id", None)
+            unwrapped = _unwrap_tool_return(result)
+            if unwrapped is not None:
+                tool_name = tool_name or unwrapped[0]
+                result = unwrapped[1]
+                call_id = call_id or unwrapped[2]
             return tool_name, result, call_id
 
         def _format_tool_result_summary(tool_name: str, args, result):
             tool_label = html.escape(tool_name or "tool")
-            safe_args = html.escape(_safe_json(args))
-            safe_result = html.escape(_safe_json(result))
+            safe_args = html.escape(_truncate(_safe_json(args)))
+            safe_result = html.escape(_truncate(_safe_json(result)))
             return (
                 "\n\n"
                 f'<details class="tool-call"><summary>Tool: {tool_label}</summary>'
@@ -164,6 +183,31 @@ class PydanticAIResponder:
                 f"<div><strong>Result</strong></div>"
                 f"<pre><code>{safe_result}</code></pre></details>\n\n"
             )
+
+        def _resolve_tool_html(result):
+            if isinstance(result, dict) and "_pylogue_html_id" in result:
+                token = result.get("_pylogue_html_id")
+                try:
+                    from pylogue.embeds import take_html
+                except Exception:
+                    return None
+                return take_html(token)
+            return None
+
+        def _should_render_tool_result_raw(tool_name: str | None, result) -> bool:
+            if not isinstance(result, str):
+                return False
+            stripped = result.lstrip()
+            if not stripped.startswith("<"):
+                return False
+            # Allow raw HTML for tool results (e.g., chart renderers).
+            return True
+
+        def _wrap_tool_html(result: str) -> str:
+            stripped = result.strip()
+            if stripped.startswith("<div") and stripped.endswith("</div>"):
+                return result
+            return f'<div class="tool-html">{result}</div>'
 
         async for event in self.agent.run_stream_events(
             text,
@@ -214,7 +258,13 @@ class PydanticAIResponder:
                 else:
                     args = None
                 if tool_name or args or result:
-                    yield _format_tool_result_summary(tool_name, args, result)
+                    resolved_html = _resolve_tool_html(result)
+                    if resolved_html:
+                        yield _wrap_tool_html(resolved_html)
+                    elif _should_render_tool_result_raw(tool_name, result):
+                        yield _wrap_tool_html(result)
+                    else:
+                        yield _format_tool_result_summary(tool_name, args, result)
                 if buffered_text:
                     yield "".join(buffered_text)
                     buffered_text.clear()
