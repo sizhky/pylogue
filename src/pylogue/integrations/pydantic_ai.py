@@ -18,7 +18,12 @@ class PydanticAIResponder:
         "when embedding HTML do not wrap it inside ```html ... ``` blocks, just output the raw HTML directly. Do not add <html> or <body> tags."
     )
     
-    def __init__(self, agent: Any, agent_deps: Optional[Any] = None):
+    def __init__(
+        self,
+        agent: Any,
+        agent_deps: Optional[Any] = None,
+        show_tool_details: bool = True,
+    ):
         self.agent = agent
         # Preserve any existing system prompt from the agent
         existing_prompt = getattr(agent, 'system_prompt', None) or ""
@@ -34,6 +39,7 @@ class PydanticAIResponder:
         self._prompt_state = state
         self.agent_deps = agent_deps
         self.message_history = None
+        self.show_tool_details = show_tool_details
         
         # Register dynamic system prompt function once per agent
         if not getattr(agent, "_pylogue_prompt_registered", False):
@@ -184,6 +190,17 @@ class PydanticAIResponder:
                 f"<pre><code>{safe_result}</code></pre></details>\n\n"
             )
 
+        def _format_tool_result_brief(tool_name: str, result):
+            if isinstance(result, dict):
+                message = result.get("message") or result.get("summary")
+                if message:
+                    return str(message)
+            if isinstance(result, str) and result.strip():
+                return result
+            if tool_name:
+                return f"{tool_name.replace('_', ' ').title()} completed."
+            return "Tool completed."
+
         def _resolve_tool_html(result):
             if isinstance(result, dict) and "_pylogue_html_id" in result:
                 token = result.get("_pylogue_html_id")
@@ -263,8 +280,10 @@ class PydanticAIResponder:
                         yield _wrap_tool_html(resolved_html)
                     elif _should_render_tool_result_raw(tool_name, result):
                         yield _wrap_tool_html(result)
-                    else:
+                    elif self.show_tool_details:
                         yield _format_tool_result_summary(tool_name, args, result)
+                    else:
+                        yield _format_tool_result_brief(tool_name, result)
                 if buffered_text:
                     yield "".join(buffered_text)
                     buffered_text.clear()
