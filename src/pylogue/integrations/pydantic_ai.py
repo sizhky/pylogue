@@ -190,16 +190,56 @@ class PydanticAIResponder:
                 f"<pre><code>{safe_result}</code></pre></details>\n\n"
             )
 
-        def _format_tool_result_brief(tool_name: str, result):
+        def _safe_dom_id(value: str | None) -> str:
+            if not value:
+                return "tool-status"
+            safe = []
+            for ch in str(value):
+                if ch.isalnum() or ch in {"-", "_"}:
+                    safe.append(ch)
+            return "".join(safe) or "tool-status"
+
+        def _format_tool_status_running(tool_name: str, args, call_id: str | None):
+            purpose = None
+            if isinstance(args, dict):
+                purpose = args.get("purpose")
+            label = purpose or (tool_name.replace("_", " ").title() if tool_name else "Working")
+            status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
+            safe_label = html.escape(str(label))
+            return (
+                f'<div id="{status_id}" class="tool-status tool-status--running">{safe_label}</div>\n\n'
+            )
+
+        def _format_tool_status_done(args, call_id: str | None):
+            if isinstance(args, dict):
+                purpose = args.get("purpose")
+                if isinstance(purpose, str) and purpose.strip():
+                    safe_label = purpose.strip()
+                else:
+                    safe_label = "Completed"
+            else:
+                safe_label = "Completed"
+            status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
+            safe_label_escaped = html.escape(safe_label)
+            return (
+                f'<div class="tool-status-update" data-target-id="{status_id}">'
+                f'{safe_label_escaped}</div>\n\n'
+            )
+
+        def _format_tool_result_brief(tool_name: str, args, result):
+            if isinstance(args, dict):
+                purpose = args.get("purpose")
+                if isinstance(purpose, str) and purpose.strip():
+                    return f"{purpose.strip()}\n\n"
             if isinstance(result, dict):
                 message = result.get("message") or result.get("summary")
                 if message:
-                    return str(message)
+                    return f"{message}\n\n"
             if isinstance(result, str) and result.strip():
-                return result
+                return f"{result}\n\n"
             if tool_name:
-                return f"{tool_name.replace('_', ' ').title()} completed."
-            return "Tool completed."
+                return f"{tool_name.replace('_', ' ').title()} completed.\n\n"
+            return "Tool completed.\n\n"
 
         def _resolve_tool_html(result):
             if isinstance(result, dict) and "_pylogue_html_id" in result:
@@ -250,6 +290,8 @@ class PydanticAIResponder:
                 tool_call_counter += 1
                 call_id = _get_tool_call_id(part) or f"tool-{tool_call_counter}"
                 pending_tool_calls[call_id] = (part.tool_name, part.args)
+                if not self.show_tool_details:
+                    yield _format_tool_status_running(part.tool_name, part.args, call_id)
                 await asyncio.sleep(0)
                 continue
 
@@ -258,6 +300,8 @@ class PydanticAIResponder:
                 tool_call_counter += 1
                 call_id = _get_tool_call_id(part) or f"tool-{tool_call_counter}"
                 pending_tool_calls[call_id] = (part.tool_name, part.args)
+                if not self.show_tool_details:
+                    yield _format_tool_status_running(part.tool_name, part.args, call_id)
                 await asyncio.sleep(0)
                 continue
 
@@ -276,14 +320,14 @@ class PydanticAIResponder:
                     args = None
                 if tool_name or args or result:
                     resolved_html = _resolve_tool_html(result)
+                    if not self.show_tool_details:
+                        yield _format_tool_status_done(args, call_id)
                     if resolved_html:
                         yield _wrap_tool_html(resolved_html)
                     elif _should_render_tool_result_raw(tool_name, result):
                         yield _wrap_tool_html(result)
                     elif self.show_tool_details:
                         yield _format_tool_result_summary(tool_name, args, result)
-                    else:
-                        yield _format_tool_result_brief(tool_name, result)
                 if buffered_text:
                     yield "".join(buffered_text)
                     buffered_text.clear()

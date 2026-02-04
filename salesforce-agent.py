@@ -54,8 +54,10 @@ String values need single quotes
 No JOIN keyword - use relationship queries instead
 Always verify table and field names before querying to avoid errors.
 
-Do not generate dashboards or visualizations unless explicitly requested by the user.
+Do not generate mermaid diagrams or dashboards or visualizations unless explicitly requested by the user.
+The default response should always be text-based answers.
 Do not give technical explanations of Salesforce ever.
+Every tool call must include a `purpose` argument that is just max three words of verb-noun kind of a phrase in present tense, e.g., counting records.
 
 available tables: {get_salesforce_tables()}
 """
@@ -70,7 +72,7 @@ deps = None
 DATA_DIR = Path(__file__).resolve().parent
 
 @agent.tool_plain()
-def get_table_schema(table_name: str):
+def get_table_schema(table_name: str, purpose: str):
     "Get schema details for a specific Salesforce table"
     try:
         table = getattr(sf, table_name)
@@ -86,7 +88,7 @@ def get_table_schema(table_name: str):
         return f"Error retrieving schema for table {table_name}: {e}"
 
 @agent.tool_plain()
-def run_salesforce_query(soql_query: str):
+def run_salesforce_query(soql_query: str, purpose: str):
     "Execute a SOQL query and return results"
     try:
         result = sf.query(soql_query)
@@ -108,7 +110,7 @@ def _flatten_record(record: dict, prefix: str = "") -> dict:
 
 
 @agent.tool_plain()
-def render_altair_chart_py(soql_query: str, altair_python: str):
+def render_altair_chart_py(soql_query: str, altair_python: str, purpose: str):
     """Render an Altair chart using Python code that defines `chart`.
 
     Always provided tooltips for interactivity in the chart.
@@ -117,7 +119,7 @@ def render_altair_chart_py(soql_query: str, altair_python: str):
     df (pandas DataFrame), alt (Altair), pd (pandas).
     """
     try:
-        results = run_salesforce_query(soql_query)
+        results = run_salesforce_query(soql_query, purpose="Fetch Salesforce data for the chart.")
         flattened = [_flatten_record(r) for r in results]
         df = pd.DataFrame(flattened)
 
