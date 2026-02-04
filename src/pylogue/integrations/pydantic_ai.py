@@ -184,6 +184,16 @@ class PydanticAIResponder:
                 f"<pre><code>{safe_result}</code></pre></details>\n\n"
             )
 
+        def _resolve_tool_html(result):
+            if isinstance(result, dict) and "_pylogue_html_id" in result:
+                token = result.get("_pylogue_html_id")
+                try:
+                    from pylogue.embeds import take_html
+                except Exception:
+                    return None
+                return take_html(token)
+            return None
+
         def _should_render_tool_result_raw(tool_name: str | None, result) -> bool:
             if not isinstance(result, str):
                 return False
@@ -248,7 +258,10 @@ class PydanticAIResponder:
                 else:
                     args = None
                 if tool_name or args or result:
-                    if _should_render_tool_result_raw(tool_name, result):
+                    resolved_html = _resolve_tool_html(result)
+                    if resolved_html:
+                        yield _wrap_tool_html(resolved_html)
+                    elif _should_render_tool_result_raw(tool_name, result):
                         yield _wrap_tool_html(result)
                     else:
                         yield _format_tool_result_summary(tool_name, args, result)
