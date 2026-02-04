@@ -29,6 +29,7 @@ If the user's question is vague, ask for clarification.
 You can also build interactive Altair dashboards by calling the render_altair_chart tool with a SELECT query and an Altair (Vega-Lite) JSON spec. Keep queries small (<2000 rows).
 If the Vega-Lite JSON spec fails, prefer render_altair_chart_py and provide Altair-Python code that defines a `chart` variable using the provided `df`.
 Available tables are registered from local CSVs (e.g., matches, deliveries); query them directly.
+Every tool call must include a `purpose` argument that briefly and non-technically states what the tool is about to do.
 Use read_vega_doc to fetch Vega/Vega-Lite specs from URLs before deciding to render charts.
 
 You will talk in less than 200 words at a time. You will not generate tables, diagrams or reasons unless asked.
@@ -69,7 +70,7 @@ register_csv_views(_startup_conn)
 _startup_conn.close()
 
 @agent.tool_plain()
-def read_csv_with_schema(table: str):
+def read_csv_with_schema(table: str, purpose: str):
     """Show schema + sample for a registered CSV table (avoids sending full data)."""
     conn = duckdb.connect()
     register_csv_views(conn)  # ensure views exist
@@ -102,7 +103,7 @@ def read_csv_with_schema(table: str):
     }
 
 @agent.tool_plain()
-def execute_sql_on_csv(sql_query: str) -> str:
+def execute_sql_on_csv(sql_query: str, purpose: str) -> str:
     """Execute a SELECT against registered CSV tables. Avoid 1000s of rows."""
     conn = duckdb.connect()
     register_csv_views(conn)
@@ -135,7 +136,7 @@ def read_vega_doc(url: str) -> str:
         return f"Error fetching Vega document: {exc}"
 
 # @agent.tool_plain()
-def render_altair_chart(sql_query: str, altair_spec_json: str):
+def render_altair_chart(sql_query: str, altair_spec_json: str, purpose: str):
     """Run a SELECT on the CSV and render an Altair/Vega-Lite chart spec. Returns iframe HTML.
 
     - Only SELECT queries are allowed.
@@ -247,7 +248,7 @@ def render_altair_chart(sql_query: str, altair_spec_json: str):
 
 
 @agent.tool_plain()
-def render_altair_chart_py(sql_query: str, altair_python: str):
+def render_altair_chart_py(sql_query: str, altair_python: str, purpose: str):
     import altair as alt
     import altair
     import pandas as pd, numpy as np

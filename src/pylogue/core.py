@@ -138,6 +138,50 @@ def get_core_headers(include_markdown: bool = True):
             ]
         )
         headers.append(
+            Style(
+                """
+                .tool-status {
+                    display: inline-block;
+                    padding: 0.3rem 0.6rem;
+                    border-radius: 999px;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                    letter-spacing: 0.01em;
+                    background: rgba(148, 163, 184, 0.15);
+                    color: #0f172a;
+                }
+                .tool-status--running {
+                    position: relative;
+                    overflow: hidden;
+                    color: #0f172a;
+                }
+                .tool-status--running::after {
+                    content: "";
+                    position: absolute;
+                    top: 0;
+                    left: -150%;
+                    width: 150%;
+                    height: 100%;
+                    background: linear-gradient(
+                        120deg,
+                        transparent 0%,
+                        rgba(255, 255, 255, 0.7) 40%,
+                        transparent 80%
+                    );
+                    animation: tool-shimmer 1.4s linear infinite;
+                }
+                .tool-status--done {
+                    background: rgba(34, 197, 94, 0.15);
+                    color: #14532d;
+                }
+                @keyframes tool-shimmer {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(100%); }
+                }
+                """
+            )
+        )
+        headers.append(
             Script(src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js")
         )
         headers.append(
@@ -410,6 +454,9 @@ def get_core_headers(include_markdown: bool = True):
                     if (window.__upgradeMermaidBlocks) {
                         window.__upgradeMermaidBlocks(root);
                     }
+                    if (window.__applyToolStatusUpdates) {
+                        window.__applyToolStatusUpdates(root);
+                    }
                 };
 
                 const observeMarkdown = () => {
@@ -447,6 +494,25 @@ def get_core_headers(include_markdown: bool = True):
                     });
                     renderMarkdown(document);
                 };
+
+                const applyToolStatusUpdates = (root = document) => {
+                    const updates = root.querySelectorAll('.tool-status-update[data-target-id]');
+                    updates.forEach((update) => {
+                        const targetId = update.getAttribute('data-target-id');
+                        if (!targetId) return;
+                        const target = document.getElementById(targetId);
+                        if (!target) {
+                            update.remove();
+                            return;
+                        }
+                        const replacement = document.createElement('div');
+                        replacement.className = 'tool-status tool-status--done';
+                        replacement.textContent = update.textContent || 'Completed';
+                        target.replaceWith(replacement);
+                        update.remove();
+                    });
+                };
+                window.__applyToolStatusUpdates = applyToolStatusUpdates;
 
                 document.addEventListener('DOMContentLoaded', () => {
                     observeMarkdown();
