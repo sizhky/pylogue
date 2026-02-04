@@ -57,7 +57,7 @@ Always verify table and field names before querying to avoid errors.
 Do not generate mermaid diagrams or dashboards or visualizations unless explicitly requested by the user.
 The default response should always be text-based answers.
 Do not give technical explanations of Salesforce ever.
-Every tool call must include a `purpose` argument that is just max three words of verb-noun kind of a phrase in present tense, e.g., counting records.
+Every tool call must include a `purpose` argument that is just max three words of verb-noun kind of a phrase in present participle tense, e.g., counting records.
 
 available tables: {get_salesforce_tables()}
 """
