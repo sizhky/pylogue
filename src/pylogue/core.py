@@ -132,6 +132,9 @@ def get_core_headers(include_markdown: bool = True):
                 ),
                 Script(src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"),
                 Script(src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"),
+                Script(src="https://cdn.jsdelivr.net/npm/vega@5"),
+                Script(src="https://cdn.jsdelivr.net/npm/vega-lite@5"),
+                Script(src="https://cdn.jsdelivr.net/npm/vega-embed@6"),
             ]
         )
         headers.append(
@@ -1300,7 +1303,7 @@ def register_routes(
                             ),
                             Button(
                                 UkIcon("upload"),
-                                cls="uk-button uk-button-text upload-chat-btn",
+                                cls="uk-button uk-button-text copy-chat-btn upload-chat-btn",
                                 type="button",
                                 aria_label="Upload conversation JSON",
                                 title="Upload conversation JSON",
