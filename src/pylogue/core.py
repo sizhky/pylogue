@@ -142,11 +142,11 @@ def get_core_headers(include_markdown: bool = True):
                 """
                 .tool-status {
                     display: inline-block;
-                    padding: 0.3rem 0.6rem;
+                    padding: 0.18rem 0.45rem;
                     border-radius: 999px;
-                    font-size: 0.95rem;
+                    font-size: 0.78rem;
                     font-weight: 600;
-                    letter-spacing: 0.01em;
+                    letter-spacing: 0.005em;
                     background: rgba(148, 163, 184, 0.15);
                     color: #0f172a;
                 }
@@ -165,13 +165,13 @@ def get_core_headers(include_markdown: bool = True):
                     background: linear-gradient(
                         120deg,
                         transparent 0%,
-                        rgba(255, 255, 255, 0.7) 40%,
+                        rgba(34, 197, 94, 0.15),
                         transparent 80%
                     );
                     animation: tool-shimmer 1.4s linear infinite;
                 }
                 .tool-status--done {
-                    background: rgba(34, 197, 94, 0.15);
+                    background: rgba(255, 255, 255, 0.7) 40%;
                     color: #14532d;
                 }
                 @keyframes tool-shimmer {

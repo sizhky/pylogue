@@ -207,7 +207,7 @@ class PydanticAIResponder:
             status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
             safe_label = html.escape(str(label))
             return (
-                f'<div id="{status_id}" class="tool-status tool-status--running">{safe_label}</div>\n\n'
+                f'<div id="{status_id}" class="tool-status tool-status--running">{safe_label}</div><br />\n\n'
             )
 
         def _format_tool_status_done(args, call_id: str | None):
@@ -223,7 +223,7 @@ class PydanticAIResponder:
             safe_label_escaped = html.escape(safe_label)
             return (
                 f'<div class="tool-status-update" data-target-id="{status_id}">'
-                f'{safe_label_escaped}</div>\n\n'
+                f'{safe_label_escaped}</div><br />\n\n'
             )
 
         def _format_tool_result_brief(tool_name: str, args, result):
