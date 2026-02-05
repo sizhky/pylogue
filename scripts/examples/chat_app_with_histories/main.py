@@ -5,8 +5,6 @@ Run: python -m scripts.examples.chat_app_with_histories.main
 
 from __future__ import annotations
 
-import inspect
-import json
 from pathlib import Path
 
 from fasthtml.common import *
@@ -26,10 +24,8 @@ from pylogue.core import (
     IMPORT_PREFIX,
     get_core_headers,
     register_core_static,
-    render_assistant_update,
+    register_ws_routes,
     render_cards,
-    render_chat_data,
-    render_chat_export,
     render_input,
 )
 from starlette.responses import FileResponse
@@ -61,6 +57,7 @@ def app_factory():
         return FileResponse(app_static_dir / "chat_app.js")
 
     sessions: dict[int, dict] = {}
+    register_ws_routes(app, responder=EchoResponder(), sessions=sessions)
 
     def _sidebar():
         return Div(
@@ -168,87 +165,6 @@ def app_factory():
                 data_import_prefix=IMPORT_PREFIX,
             ),
         )
-
-    def _on_connect(ws, send):
-        ws_id = id(ws)
-        sessions[ws_id] = {
-            "cards": [],
-            "responder": EchoResponder(),
-        }
-
-    def _on_disconnect(ws):
-        sessions.pop(id(ws), None)
-
-    @app.ws("/ws", conn=_on_connect, disconn=_on_disconnect)
-    async def ws_handler(msg: str, send, ws):
-        ws_id = id(ws)
-        session = sessions.get(ws_id)
-        if session is None:
-            session = {"cards": [], "responder": EchoResponder()}
-            sessions[ws_id] = session
-        cards = session["cards"]
-        responder = session["responder"]
-
-        if isinstance(msg, str) and msg.startswith(IMPORT_PREFIX):
-            payload = msg[len(IMPORT_PREFIX) :].strip()
-            try:
-                imported = json.loads(payload) if payload else []
-            except json.JSONDecodeError:
-                imported = []
-            meta = None
-            if isinstance(imported, dict):
-                meta = imported.get("meta")
-                imported = imported.get("cards", [])
-            normalized = []
-            if isinstance(imported, list):
-                for item in imported:
-                    if not isinstance(item, dict):
-                        continue
-                    question = item.get("question")
-                    answer = item.get("answer")
-                    if question is None or answer is None:
-                        continue
-                    normalized.append(
-                        {
-                            "id": str(len(normalized)),
-                            "question": str(question),
-                            "answer": str(answer),
-                        }
-                    )
-            session["cards"] = normalized
-            if meta is not None and hasattr(responder, "load_state"):
-                try:
-                    responder.load_state(meta)
-                except Exception:
-                    pass
-            if hasattr(responder, "load_history"):
-                try:
-                    responder.load_history(normalized)
-                except Exception:
-                    pass
-            await send(render_cards(normalized))
-            await send(render_chat_data(normalized))
-            await send(render_chat_export(normalized, responder=responder))
-            return
-
-        cards.append({"id": str(len(cards)), "question": msg, "answer": ""})
-        await send(render_cards(cards))
-
-        result = responder(msg)
-        if inspect.isasyncgen(result):
-            async for chunk in result:
-                cards[-1]["answer"] += str(chunk)
-                await send(render_assistant_update(cards[-1]))
-        else:
-            if inspect.isawaitable(result):
-                result = await result
-            for ch in str(result):
-                cards[-1]["answer"] += ch
-                await send(render_assistant_update(cards[-1]))
-
-        await send(render_chat_data(cards))
-        await send(render_chat_export(cards, responder=responder))
-        return
 
     return app
 

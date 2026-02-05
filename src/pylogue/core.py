@@ -169,109 +169,20 @@ def get_core_headers(include_markdown: bool = True):
     return headers
 
 
-def register_routes(
+def register_ws_routes(
     app,
     responder=None,
     responder_factory=None,
-    tag_line: str = "STREAMING DEMO",
-    title: str = "Minimal Stream Chat",
-    subtitle: str = "One question, one answer card. Response streams character-by-character.",
     base_path: str = "",
-    inject_headers: bool = False,
-    include_markdown: bool = True,
-    tag_line_href: str = "",
+    sessions: dict | None = None,
 ):
-    if responder_factory is None and responder is not None and hasattr(responder, "message_history"):
-        raise ValueError(
-            "Responder appears to be stateful (has message_history). "
-            "Pass responder_factory to create a fresh responder per connection."
-        )
-    register_core_static(app)
-    if base_path and not base_path.startswith("/"):
-        base_path = f"/{base_path}"
-    chat_path = f"{base_path}/" if base_path else "/"
-    ws_path = f"{base_path}/ws" if base_path else "/ws"
-
-    if inject_headers:
-        for header in get_core_headers(include_markdown=include_markdown):
-            app.hdrs = (*app.hdrs, header)
-
     if responder_factory is None:
         responder = responder or EchoResponder()
-    sessions = {}
-
-    @app.route(chat_path)
-    def home():
-        tag_line_node = (
-            A(
-                tag_line,
-                href=tag_line_href,
-                cls="text-xs uppercase tracking-widest text-slate-500 hover:text-slate-700",
-            )
-            if tag_line_href
-            else P(tag_line, cls="text-xs uppercase tracking-widest text-slate-500")
-        )
-        return (
-            Title(title),
-            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            Body(
-                Container(
-                    Div(
-                        Div(
-                            tag_line_node,
-                            H1(title, cls="text-3xl md:text-4xl font-semibold text-slate-900"),
-                            P(subtitle, cls=(TextPresets.muted_sm, "text-slate-600")),
-                            cls="space-y-2",
-                        ),
-                        Div(
-                            Button(
-                                UkIcon("download"),
-                                cls="uk-button uk-button-text copy-chat-btn",
-                                type="button",
-                                aria_label="Download conversation JSON",
-                                title="Download conversation JSON",
-                            ),
-                            Button(
-                                UkIcon("upload"),
-                                cls="uk-button uk-button-text copy-chat-btn upload-chat-btn",
-                                type="button",
-                                aria_label="Upload conversation JSON",
-                                title="Upload conversation JSON",
-                            ),
-                            Input(
-                                type="file",
-                                id="chat-upload",
-                                accept="application/json",
-                                cls="sr-only",
-                            ),
-                            cls="flex justify-end gap-2",
-                        ),
-                        Div(
-                            Div(render_cards([])),
-                            Form(
-                                render_input(),
-                                Div(
-                                    Button("Send", cls=ButtonT.primary, type="submit"),
-                                    P("Cmd/Ctrl+Enter to send", cls="text-xs text-slate-400"),
-                                    cls="flex flex-col gap-2 items-stretch",
-                                ),
-                                id="form",
-                                hx_ext="ws",
-                                ws_connect=ws_path,
-                                ws_send=True,
-                                hx_target="#cards",
-                                hx_swap="outerHTML",
-                                cls="flex flex-col sm:flex-row gap-3 items-stretch pt-4",
-                            ),
-                            cls="chat-panel space-y-4",
-                        ),
-                        cls="space-y-6",
-                    ),
-                    cls=(ContainerT.lg, "py-10"),
-                ),
-                cls="min-h-screen bg-slate-50 text-slate-900",
-            ),
-        )
+    if base_path and not base_path.startswith("/"):
+        base_path = f"/{base_path}"
+    ws_path = f"{base_path}/ws" if base_path else "/ws"
+    if sessions is None:
+        sessions = {}
 
     def _on_connect(ws, send):
         ws_id = id(ws)
@@ -376,6 +287,117 @@ def register_routes(
         await send(render_chat_export(cards, responder=session_responder))
         return
 
+    return sessions
+
+
+def register_routes(
+    app,
+    responder=None,
+    responder_factory=None,
+    tag_line: str = "STREAMING DEMO",
+    title: str = "Minimal Stream Chat",
+    subtitle: str = "One question, one answer card. Response streams character-by-character.",
+    base_path: str = "",
+    inject_headers: bool = False,
+    include_markdown: bool = True,
+    tag_line_href: str = "",
+):
+    if responder_factory is None and responder is not None and hasattr(responder, "message_history"):
+        raise ValueError(
+            "Responder appears to be stateful (has message_history). "
+            "Pass responder_factory to create a fresh responder per connection."
+        )
+    register_core_static(app)
+    if base_path and not base_path.startswith("/"):
+        base_path = f"/{base_path}"
+    chat_path = f"{base_path}/" if base_path else "/"
+    ws_path = f"{base_path}/ws" if base_path else "/ws"
+
+    if inject_headers:
+        for header in get_core_headers(include_markdown=include_markdown):
+            app.hdrs = (*app.hdrs, header)
+
+    if responder_factory is None:
+        responder = responder or EchoResponder()
+    register_ws_routes(
+        app,
+        responder=responder,
+        responder_factory=responder_factory,
+        base_path=base_path,
+    )
+
+    @app.route(chat_path)
+    def home():
+        tag_line_node = (
+            A(
+                tag_line,
+                href=tag_line_href,
+                cls="text-xs uppercase tracking-widest text-slate-500 hover:text-slate-700",
+            )
+            if tag_line_href
+            else P(tag_line, cls="text-xs uppercase tracking-widest text-slate-500")
+        )
+        return (
+            Title(title),
+            Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
+            Body(
+                Container(
+                    Div(
+                        Div(
+                            tag_line_node,
+                            H1(title, cls="text-3xl md:text-4xl font-semibold text-slate-900"),
+                            P(subtitle, cls=(TextPresets.muted_sm, "text-slate-600")),
+                            cls="space-y-2",
+                        ),
+                        Div(
+                            Button(
+                                UkIcon("download"),
+                                cls="uk-button uk-button-text copy-chat-btn",
+                                type="button",
+                                aria_label="Download conversation JSON",
+                                title="Download conversation JSON",
+                            ),
+                            Button(
+                                UkIcon("upload"),
+                                cls="uk-button uk-button-text copy-chat-btn upload-chat-btn",
+                                type="button",
+                                aria_label="Upload conversation JSON",
+                                title="Upload conversation JSON",
+                            ),
+                            Input(
+                                type="file",
+                                id="chat-upload",
+                                accept="application/json",
+                                cls="sr-only",
+                            ),
+                            cls="flex justify-end gap-2",
+                        ),
+                        Div(
+                            Div(render_cards([])),
+                            Form(
+                                render_input(),
+                                Div(
+                                    Button("Send", cls=ButtonT.primary, type="submit"),
+                                    P("Cmd/Ctrl+Enter to send", cls="text-xs text-slate-400"),
+                                    cls="flex flex-col gap-2 items-stretch",
+                                ),
+                                id="form",
+                                hx_ext="ws",
+                                ws_connect=ws_path,
+                                ws_send=True,
+                                hx_target="#cards",
+                                hx_swap="outerHTML",
+                                cls="flex flex-col sm:flex-row gap-3 items-stretch pt-4",
+                            ),
+                            cls="chat-panel space-y-4",
+                        ),
+                        cls="space-y-6",
+                    ),
+                    cls=(ContainerT.lg, "py-10"),
+                ),
+                cls="min-h-screen bg-slate-50 text-slate-900",
+            ),
+        )
 
 def main(
     responder=None,
