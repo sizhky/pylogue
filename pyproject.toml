@@ -33,12 +33,13 @@ dependencies = [
   "python-dotenv",
   "psycopg2-binary",
   "litellm",
-  "opentelemetry-instrumentation-psycopg2"
+  "opentelemetry-instrumentation-psycopg2",
   "fastsql>=2.1.2",
   "duckdb>=1.4.4",
   "altair>=6.0.0",
   "pandas>=3.0.0",
   "simple-salesforce>=1.12.9",
+  "psycopg2>=2.9.11",
 ]
 
 [project.optional-dependencies]
