@@ -4,7 +4,7 @@ width: 90vw
 ---
 flowchart TD
   %% Nodes
-  subgraph PYLOGUE["Pylogue Business<br>Core UI + Runtime"]
+  subgraph PYLOGUE["Pylogue Platform<br>Core UI + Runtime"]
     D["Core Runtime<br>pylogue/core.py"]:::core
     E["WebSocket<br>/ws"]:::ws
     I["REST API<br>/api/chats/*"]:::api
@@ -12,13 +12,13 @@ flowchart TD
     K["Static Assets<br>CSS + JS"]:::static
   end
 
-  subgraph APP["App Integration<br>FastHTML Shell + UI"]
+  subgraph APP["Application Layer<br>FastHTML Shell + UI"]
     A["Browser<br>Chat UI"]:::client
     B["chat_app.js<br>State + UI logic"]:::client
     C["FastHTML App<br>chat_app_with_histories/factory.py"]:::server
   end
 
-  subgraph USER["User Business<br>Your Agent + Responder"]
+  subgraph USER["User Layer<br>Your Agent + Responder"]
     F["Responder<br>PydanticAIResponder"]:::responder
     G["Pydantic AI Agent"]:::responder
     H["LLM Provider"]:::external
