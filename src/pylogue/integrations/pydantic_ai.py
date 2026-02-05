@@ -123,7 +123,6 @@ class PydanticAIResponder:
 
         pending_tool_calls = {}
         tool_call_counter = 0
-        buffered_text = []
 
         def _safe_json(value):
             if value is None:
@@ -275,14 +274,12 @@ class PydanticAIResponder:
 
             if kind == "part_start" and isinstance(event.part, messages.TextPart):
                 if event.part.content:
-                    buffered_text.append(event.part.content)
-                    await asyncio.sleep(0)
+                    yield event.part.content
                 continue
 
             if kind == "part_delta" and isinstance(event.delta, messages.TextPartDelta):
                 if event.delta.content_delta:
-                    buffered_text.append(event.delta.content_delta)
-                    await asyncio.sleep(0)
+                    yield event.delta.content_delta
                 continue
 
             if kind == "function_tool_call":
@@ -328,9 +325,6 @@ class PydanticAIResponder:
                         yield _wrap_tool_html(result)
                     elif self.show_tool_details:
                         yield _format_tool_result_summary(tool_name, args, result)
-                if buffered_text:
-                    yield "".join(buffered_text)
-                    buffered_text.clear()
                 await asyncio.sleep(0)
                 continue
 
@@ -339,6 +333,3 @@ class PydanticAIResponder:
                 if pending_tool_calls:
                     for tool_name, args in pending_tool_calls.values():
                         yield _format_tool_result_summary(tool_name, args, None)
-                if buffered_text:
-                    yield "".join(buffered_text)
-                    buffered_text.clear()

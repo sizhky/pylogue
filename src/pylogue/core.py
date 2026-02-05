@@ -178,8 +178,13 @@ def register_ws_routes(
 ):
     if responder_factory is None:
         responder = responder or EchoResponder()
-    if base_path and not base_path.startswith("/"):
-        base_path = f"/{base_path}"
+    base_path = (base_path or "").strip()
+    if base_path in {"", "/"}:
+        base_path = ""
+    else:
+        base_path = "/" + base_path.strip("/")
+        if ".." in base_path.split("/"):
+            raise ValueError("base_path cannot contain '..'")
     ws_path = f"{base_path}/ws" if base_path else "/ws"
     if sessions is None:
         sessions = {}
