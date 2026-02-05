@@ -1,7 +1,19 @@
 # Pydantic AI integration for Pylogue
 import html
 import json
+import re
 from typing import Any, Optional
+
+_TOOL_HTML_RE = re.compile(r'<div class="tool-html">.*?</div>', re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _sanitize_history_answer(answer: str) -> str:
+    if not isinstance(answer, str) or not answer:
+        return ""
+    text = _TOOL_HTML_RE.sub("Rendered tool output.", answer)
+    text = _TAG_RE.sub("", text)
+    return html.unescape(text).strip()
 
 
 class PydanticAIResponder:
@@ -17,7 +29,7 @@ class PydanticAIResponder:
         "Render math using LaTeX syntax within $$ ... $$ blocks or inline with $ ... $."
         "when embedding HTML do not wrap it inside ```html ... ``` blocks, just output the raw HTML directly. Do not add <html> or <body> tags."
     )
-    
+
     def __init__(
         self,
         agent: Any,
@@ -108,10 +120,14 @@ class PydanticAIResponder:
                         parts=[pai_messages.UserPromptPart(content=str(question))]
                     )
                 )
-            if answer is not None:
+            answer_text = card.get("answer_text") if isinstance(card, dict) else None
+            if answer_text is None:
+                answer_text = answer
+            answer_text = _sanitize_history_answer(answer_text)
+            if answer_text:
                 history.append(
                     pai_messages.ModelResponse(
-                        parts=[pai_messages.TextPart(content=str(answer))]
+                        parts=[pai_messages.TextPart(content=str(answer_text))]
                     )
                 )
         self.message_history = history

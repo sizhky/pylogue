@@ -7,6 +7,8 @@ import asyncio
 import inspect
 import json
 import base64
+import html as html_lib
+import re
 
 IMPORT_PREFIX = "__PYLOGUE_IMPORT__:"
 _CORE_STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -106,8 +108,32 @@ def render_chat_data(cards):
         hx_swap_oob="true",
     )
 
+_TOOL_HTML_RE = re.compile(r'<div class="tool-html">.*?</div>', re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _normalize_answer_for_history(answer: str) -> str:
+    if not isinstance(answer, str) or not answer:
+        return ""
+    text = _TOOL_HTML_RE.sub("Rendered tool output.", answer)
+    text = _TAG_RE.sub("", text)
+    return html_lib.unescape(text).strip()
+
+
 def build_export_payload(cards, responder=None):
-    payload = {"cards": cards}
+    export_cards = []
+    for card in cards:
+        if not isinstance(card, dict):
+            continue
+        answer = card.get("answer", "")
+        answer_text = card.get("answer_text")
+        if not isinstance(answer_text, str) or not answer_text.strip():
+            answer_text = _normalize_answer_for_history(answer)
+        export_card = dict(card)
+        export_card["answer_text"] = answer_text
+        export_cards.append(export_card)
+
+    payload = {"cards": export_cards}
     if responder is not None and hasattr(responder, "get_export_state"):
         try:
             meta = responder.get_export_state()
@@ -248,6 +274,7 @@ def register_ws_routes(
                             continue
                         question = item.get("question")
                         answer = item.get("answer")
+                        answer_text = item.get("answer_text")
                         if question is None or answer is None:
                             continue
                         normalized.append(
@@ -255,6 +282,7 @@ def register_ws_routes(
                                 "id": str(len(normalized)),
                                 "question": str(question),
                                 "answer": str(answer),
+                                "answer_text": str(answer_text) if answer_text is not None else None,
                             }
                         )
             session["cards"] = normalized
