@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pylogue"
-version = "0.3.6"
+version = "0.3.10"
 description = "A Chatbot UI built for AI agents"
 readme = "README.rst"
 authors = [
@@ -30,6 +30,11 @@ dependencies = [
   "monsterui",
   "logfire>=4.20.0",
   "pydantic-ai>=1.48.0",
+  "fastsql>=2.1.2",
+  "duckdb>=1.4.4",
+  "altair>=6.0.0",
+  "pandas>=3.0.0",
+  "simple-salesforce>=1.12.9",
 ]
 
 [project.optional-dependencies]

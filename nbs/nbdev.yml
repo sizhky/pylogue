@@ -1,9 +1,0 @@
-project:
-  output-dir: docs
-
-website:
-  title: "Pylogue"
-  site-url: "https://sizhky.github.io/pylogue"
-  description: "A Chatbot UI build for Pydantic-AI agents"
-  repo-branch: main
-  repo-url: "https://github.com/sizhky/pylogue.git"
