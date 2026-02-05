@@ -27,7 +27,8 @@ Never reference an alias unless it is defined in the FROM clause.
 For year-based filters, first query the latest year from the correct table and use it as the default.
 If the user's question is vague, ask for clarification.
 You can also build interactive Altair dashboards by calling the render_altair_chart tool with a SELECT query and an Altair (Vega-Lite) JSON spec. Keep queries small (<2000 rows).
-If the Vega-Lite JSON spec fails, prefer render_altair_chart_py and provide Altair-Python code that defines a `chart` variable using the provided `df`.
+If the Vega-Lite JSON spec fails, prefer render_altair_chart_py and provide Altair-Python code that defines a `chart` variable using the provided `df` (e.g., `chart = alt.Chart(df)...`).
+When using render_altair_chart_py, you may use import statements if needed.
 Available tables are registered from local CSVs (e.g., matches, deliveries); query them directly.
 Every tool call must include a `purpose` argument that briefly and non-technically states what the tool is about to do.
 Use read_vega_doc to fetch Vega/Vega-Lite specs from URLs before deciding to render charts.
@@ -40,7 +41,7 @@ ALWAYS FIRST READ THE SCHEMA
 
 agent = Agent(
     # "openai:gpt-5-mini",
-    "google-gla:gemini-2.5-pro",
+    "google-gla:gemini-3-flash-preview",
     instructions=instructions,
 )
 deps = None
@@ -144,35 +145,52 @@ def render_altair_chart_py(sql_query: str, altair_python: str, purpose: str):
     limited_query = f"SELECT * FROM ({normalized_query}) t LIMIT 2000"
     df = conn.execute(limited_query).df()
 
-    safe_builtins = {
-        "len": len,
-        "min": min,
-        "max": max,
-        "sum": sum,
-        "range": range,
-        "list": list,
-        "dict": dict,
-    }
-    safe_globals = {"__builtins__": safe_builtins}
-    safe_locals = {"df": df, "alt": alt, "pd": pd}
+    exec_env = {"__builtins__": __builtins__, "df": df, "alt": alt, "pd": pd}
 
     try:
-        exec(altair_python, safe_globals, safe_locals)
+        exec(altair_python, exec_env)
     except Exception as exc:  # noqa: BLE001
         return f"Error executing Altair code: {exc}"
 
-    chart = safe_locals.get("chart")
+    chart = exec_env.get("chart")
     if chart is None or not hasattr(chart, "to_html"):
         return "Error: Altair code must define a `chart` variable."
+
+    def _spec_height(spec):
+        if isinstance(spec, list):
+            return max((_spec_height(s) for s in spec), default=0)
+        if not isinstance(spec, dict):
+            return 0
+        if "height" in spec and isinstance(spec["height"], (int, float)):
+            return int(spec["height"])
+        if "vconcat" in spec:
+            items = spec["vconcat"]
+            return sum(_spec_height(s) for s in items) + max(len(items) - 1, 0) * 20
+        if "hconcat" in spec:
+            return max((_spec_height(s) for s in spec["hconcat"]), default=0)
+        if "layer" in spec:
+            return max((_spec_height(s) for s in spec["layer"]), default=0)
+        if "spec" in spec:
+            return _spec_height(spec["spec"])
+        return 0
 
     try:
         html_content = chart.to_html(embed_options={"actions": False})
     except Exception as exc:  # noqa: BLE001
         return f"Error serializing chart HTML: {exc}"
 
+    try:
+        spec = chart.to_dict()
+        chart_height = _spec_height(spec)
+    except Exception:  # noqa: BLE001
+        chart_height = 0
+
+    # Add padding for titles/axes/legend to avoid scrollbars.
+    iframe_height = max(300, chart_height + 120)
+
     iframe_html = (
         f"<iframe src=\"data:text/html;base64,{base64.b64encode(html_content.encode()).decode()}\" "
-        f"frameborder=\"0\" style=\"width:100%; height:480px;\"></iframe>"
+        f"frameborder=\"0\" style=\"width:100%; height:{iframe_height}px;\"></iframe>"
     )
 
     html_id = store_html(iframe_html)

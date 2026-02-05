@@ -9,6 +9,11 @@ const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
   <path d="M14 11v6"/>
 </svg>`;
 
+const PENCIL_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M12 20h9"/>
+  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>
+</svg>`;
+
 const api = {
   async listChats() {
     const res = await fetch('/api/chats');
@@ -61,11 +66,15 @@ const renderChatList = (index) => {
         <div class="chat-item-title" data-chat-title="true">${chat.title}</div>
         <div class="chat-item-meta">${formatTime(chat.updated_at)}</div>
       </div>
-      <span class="chat-item-delete" title="Delete chat" aria-label="Delete chat">${TRASH_SVG}</span>
+      <div class="chat-item-actions">
+        <span class="chat-item-edit" title="Edit title" aria-label="Edit title">${PENCIL_SVG}</span>
+        <span class="chat-item-delete" title="Delete chat" aria-label="Delete chat">${TRASH_SVG}</span>
+      </div>
     `;
     btn.addEventListener('click', () => selectChat(chat.id));
     const titleEl = btn.querySelector('[data-chat-title="true"]');
-    titleEl?.addEventListener('click', (event) => {
+    const edit = btn.querySelector('.chat-item-edit');
+    edit?.addEventListener('click', (event) => {
       event.stopPropagation();
       beginTitleEdit(chat.id, titleEl);
     });
