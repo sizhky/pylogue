@@ -1,0 +1,362 @@
+html, body {
+  margin: 0;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+html {
+  color-scheme: light;
+}
+
+:root, .uk-theme-slate {
+  --background: 0 0% 98%;
+  --foreground: 222 47% 11%;
+}
+
+.chat-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.chat-row-user {
+  background: #e2e8f0;
+  border-left: 3px solid #cbd5f5;
+}
+
+.chat-row-assistant {
+  background: #f8fafc;
+  border-left: 3px solid #e2e8f0;
+}
+
+.chat-row-block {
+  margin: 0;
+  padding: 14px 12px;
+}
+
+.tool-status {
+  display: inline-block;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  background: rgba(148, 163, 184, 0.15);
+  color: #0f172a;
+}
+
+.tool-status--running {
+  position: relative;
+  overflow: hidden;
+  color: #0f172a;
+}
+
+.tool-status--running::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(34, 197, 94, 0.15),
+    transparent 80%
+  );
+  animation: tool-shimmer 1.4s linear infinite;
+}
+
+.tool-status--done {
+  background: rgba(255, 255, 255, 0.7) 40%;
+  color: #14532d;
+}
+
+@keyframes tool-shimmer {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+.marked a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+
+.marked a:hover {
+  color: #1d4ed8;
+}
+
+.marked table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.95rem;
+}
+
+.marked thead th {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.marked tbody td {
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+.marked tbody tr:nth-child(odd) {
+  background: #f8fafc;
+}
+
+.marked tbody tr:hover {
+  background: #eef2ff;
+}
+
+.marked blockquote {
+  margin: 16px 0;
+  padding: 12px 14px;
+  border-left: 3px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  border-radius: 8px;
+}
+
+.marked pre {
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: auto;
+  text-align: left;
+  position: relative;
+}
+
+.marked {
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.marked :not(pre) > code {
+  background: #f1f5f9;
+  color: #0f172a;
+  padding: 0.15rem 0.35rem;
+  border-radius: 6px;
+  font-size: 0.95em;
+}
+
+.marked pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  text-align: left;
+}
+
+.marked pre .code-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.9);
+  color: #64748b;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.marked pre:hover .code-copy-btn,
+.marked pre:focus-within .code-copy-btn {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.marked pre .code-copy-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.marked pre .code-copy-btn:hover {
+  color: #0f172a;
+  border-color: #cbd5f5;
+}
+
+.marked pre .code-copy-btn[data-copied="true"] {
+  color: #16a34a;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.marked .mermaid-container {
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 8px;
+  margin: 16px 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.marked .mermaid-wrapper {
+  min-height: 0;
+  height: fit-content;
+  overflow: hidden;
+  position: relative;
+}
+
+.marked .mermaid-wrapper svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.marked .mermaid-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 4px 6px;
+  z-index: 10;
+}
+
+.marked .mermaid-controls button {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.marked .mermaid-controls button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.marked ul,
+.marked ol {
+  margin: 12px 0;
+  padding-left: 1.25rem;
+}
+
+.marked hr {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 20px 0;
+}
+
+#cards,
+.chat-panel {
+  overflow-anchor: none;
+}
+
+.marked details.tool-call {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px 8px;
+  color: #475569;
+  margin: 14px 0;
+  font-size: 0.85rem;
+}
+
+.marked details.tool-call summary {
+  cursor: pointer;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.marked details.tool-call pre {
+  background: #e2e8f0;
+  color: #334155;
+  border-color: #cbd5f5;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+}
+
+.copy-btn {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #94a3b8;
+}
+
+.copy-btn:hover {
+  color: #475569;
+}
+
+.copy-chat-btn {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  color: #475569;
+  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.copy-chat-btn:hover {
+  color: #1f2937;
+}
+
+.copy-chat-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.copy-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.copy-btn[data-copied="true"] {
+  color: #16a34a;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.copy-btn .copy-label {
+  display: none;
+}
+
+.copy-chat-btn[data-copied="true"] {
+  color: #16a34a;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
