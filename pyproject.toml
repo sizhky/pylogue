@@ -30,6 +30,14 @@ dependencies = [
   "monsterui",
   "logfire>=4.20.0",
   "pydantic-ai>=1.48.0",
+  "duckdb",
+  "altair",
+  "python-dotenv",
+  "pandas",
+  "psycopg2-binary",
+  "simple-salesforce",
+  "litellm",
+  "opentelemetry-instrumentation-psycopg2"
 ]
 
 [project.optional-dependencies]
