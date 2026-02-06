@@ -57,7 +57,17 @@ def _utc_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def app_factory(responder=None) -> MUFastHTML:
+def app_factory(
+    responder=None,
+    sidebar_title: str = "Pylogue",
+    sidebar_tag: str = "Multi-Chat",
+    hero_tag: str = "PYLOGUE WRAPPER",
+    hero_title: str = "Fast HTML + Pylogue Core",
+    hero_subtitle: str = (
+        "One UI wraps multiple Pylogue chat sessions. Pick a chat on the left, "
+        "start a new one, or return to previous conversations instantly."
+    ),
+) -> MUFastHTML:
     responder = responder or EchoResponder()
     headers = list(get_core_headers(include_markdown=True))
     headers.extend(
@@ -177,8 +187,8 @@ def app_factory(responder=None) -> MUFastHTML:
     def _sidebar():
         return Div(
             Div(
-                H1("Pylogue", cls="text-xl font-semibold"),
-                Span("Multi-Chat", cls="meta-pill"),
+                H1(sidebar_title, cls="text-xl font-semibold"),
+                Span(sidebar_tag, cls="meta-pill"),
                 cls="sidebar-header",
             ),
             Button(
@@ -195,13 +205,9 @@ def app_factory(responder=None) -> MUFastHTML:
     def _hero():
         return Div(
             Div(
-                P("PYLOGUE WRAPPER", cls="meta-pill"),
-                H2("Fast HTML + Pylogue Core", cls="hero-title"),
-                P(
-                    "One UI wraps multiple Pylogue chat sessions. Pick a chat on the left, "
-                    "start a new one, or return to previous conversations instantly.",
-                    cls="hero-sub",
-                ),
+                P(hero_tag, cls="meta-pill"),
+                H2(hero_title, cls="hero-title"),
+                P(hero_subtitle, cls="hero-sub"),
                 cls="space-y-2",
             ),
             Div(

@@ -7,7 +7,14 @@ from pylogue.integrations.pydantic_ai import PydanticAIResponder
 agent_responder = PydanticAIResponder(agent=agent)
 
 def _app_factory():
-    return app_factory(responder=agent_responder)
+    return app_factory(
+        responder=agent_responder,
+        sidebar_title="Dialogues with AI",
+        sidebar_tag="Histories",
+        hero_title="Powered by Pylogue",
+        hero_subtitle="A chat application with conversation histories built using Fast HTML and Pylogue Core.",
+        hero_tag=""
+    )
 
 if __name__ == "__main__":
     import uvicorn
