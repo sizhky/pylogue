@@ -3,11 +3,10 @@ Chat app wrapper with multiple local histories.
 Run: python -m scripts.examples.chat_app_with_histories.main
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 from uuid import uuid4
 
@@ -27,6 +26,8 @@ from monsterui.all import (
 from pylogue.core import (
     EchoResponder,
     IMPORT_PREFIX,
+    _register_google_auth_routes,
+    google_oauth_config_from_env,
     get_core_headers,
     register_core_static,
     register_ws_routes,
@@ -36,6 +37,7 @@ from pylogue.core import (
 from starlette.requests import Request
 from starlette.responses import FileResponse
 from starlette.responses import JSONResponse
+from starlette.responses import RedirectResponse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHAT_APP_DIR = PROJECT_ROOT / "scripts" / "examples" / "chat_app_with_histories"
@@ -87,8 +89,26 @@ def app_factory(
         ]
     )
 
-    app = MUFastHTML(exts="ws", hdrs=tuple(headers), pico=False)
+    oauth_cfg = google_oauth_config_from_env()
+    auth_required = bool(oauth_cfg and oauth_cfg.auth_required)
+    session_secret = (
+        oauth_cfg.session_secret
+        if oauth_cfg and oauth_cfg.session_secret
+        else os.getenv("PYLOGUE_SESSION_SECRET")
+    )
+    app_kwargs = {"exts": "ws", "hdrs": tuple(headers), "pico": False}
+    if session_secret:
+        app_kwargs["secret_key"] = session_secret
+    app = MUFastHTML(**app_kwargs)
     register_core_static(app)
+    auth_paths = _register_google_auth_routes(app, oauth_cfg) if oauth_cfg else None
+
+    def _is_authorized(request: Request) -> bool:
+        if not auth_required:
+            return True
+        auth = request.session.get("auth")
+        return isinstance(auth, dict)
+
     @app.route("/static/chat_app.css")
     def _chat_app_css():
         return FileResponse(STATIC_DIR / "chat_app.css")
@@ -98,7 +118,9 @@ def app_factory(
         return FileResponse(STATIC_DIR / "chat_app.js")
 
     @app.route("/api/chats", methods=["GET"])
-    def list_chats():
+    def list_chats(request: Request):
+        if not _is_authorized(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
         items = list(local_db.create(Chat, pk="id")())
         items.sort(key=lambda c: c.updated_at or c.created_at, reverse=True)
         return JSONResponse(
@@ -115,6 +137,8 @@ def app_factory(
 
     @app.route("/api/chats", methods=["POST"])
     async def create_chat(request: Request):
+        if not _is_authorized(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
         chats = local_db.create(Chat, pk="id")
         data = await request.json()
         chat_id = data.get("id") or str(uuid4())
@@ -138,7 +162,9 @@ def app_factory(
         )
 
     @app.route("/api/chats/{chat_id}", methods=["GET"])
-    def get_chat(chat_id: str):
+    def get_chat(request: Request, chat_id: str):
+        if not _is_authorized(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
         chats = local_db.create(Chat, pk="id")
         try:
             chat = chats[chat_id]
@@ -155,6 +181,8 @@ def app_factory(
 
     @app.route("/api/chats/{chat_id}", methods=["POST"])
     async def save_chat(chat_id: str, request: Request):
+        if not _is_authorized(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
         chats = local_db.create(Chat, pk="id")
         data = await request.json()
         payload = data.get("payload") or {"cards": []}
@@ -181,7 +209,9 @@ def app_factory(
         )
 
     @app.route("/api/chats/{chat_id}", methods=["DELETE"])
-    def delete_chat(chat_id: str):
+    def delete_chat(request: Request, chat_id: str):
+        if not _is_authorized(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
         chats = local_db.create(Chat, pk="id")
         try:
             chats.delete(chat_id)
@@ -190,7 +220,7 @@ def app_factory(
         return JSONResponse({"deleted": True})
 
     sessions: dict[int, dict] = {}
-    register_ws_routes(app, responder=responder, sessions=sessions)
+    register_ws_routes(app, responder=responder, sessions=sessions, auth_required=auth_required)
 
     def _sidebar():
         return Div(
@@ -280,7 +310,11 @@ def app_factory(
         )
 
     @app.route("/")
-    def home():
+    def home(request: Request):
+        if auth_required and not _is_authorized(request):
+            request.session["next"] = "/"
+            login_path = auth_paths["login_path"] if auth_paths else "/login"
+            return RedirectResponse(login_path, status_code=303)
         return (
             Title(hero_title),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
