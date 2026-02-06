@@ -3,14 +3,24 @@
 import asyncio
 
 from pylogue.integrations.agno import AgnoResponder
+from pylogue.embeds import store_html
 
 
 class _Chunk:
-    def __init__(self, *, event=None, content=None, tools=None, messages=None):
+    def __init__(self, *, event=None, content=None, tools=None, tool=None, messages=None):
         self.event = event
         self.content = content
         self.tools = tools
+        self.tool = tool
         self.messages = messages
+
+
+class _Tool:
+    def __init__(self, *, tool_name=None, tool_args=None, result=None, tool_call_id=None):
+        self.tool_name = tool_name
+        self.tool_args = tool_args
+        self.result = result
+        self.tool_call_id = tool_call_id
 
 
 class _FakeAgent:
@@ -54,6 +64,34 @@ class _FakeAgentDirectStream:
         async def _stream():
             yield _Chunk(event="RunContent", content="Hi")
             yield _Chunk(event="RunContent", content="Hi there")
+
+        return _stream()
+
+
+class _FakeAgentWithSingularToolEvents:
+    def __init__(self, tool_result):
+        self.instructions = "Base instructions"
+        self.calls = []
+        self.tool_result = tool_result
+
+    def arun(self, run_input, **kwargs):
+        self.calls.append((run_input, kwargs))
+
+        async def _stream():
+            yield _Chunk(
+                event="ToolCallStarted",
+                tool=_Tool(tool_name="render_altair_chart_py", tool_args={"purpose": "chart"}, tool_call_id="tool-7"),
+            )
+            yield _Chunk(
+                event="ToolCallCompleted",
+                tool=_Tool(
+                    tool_name="render_altair_chart_py",
+                    tool_args={"purpose": "chart"},
+                    result=self.tool_result,
+                    tool_call_id="tool-7",
+                ),
+            )
+            yield _Chunk(event="RunContent", content="Rendered chart.")
 
         return _stream()
 
@@ -122,3 +160,20 @@ def test_agno_responder_load_history_sanitizes_html():
     assert responder.message_history[0]["content"] == "What happened?"
     assert responder.message_history[1]["role"] == "assistant"
     assert responder.message_history[1]["content"] == "Rendered tool output. done"
+
+
+def test_agno_responder_renders_html_from_singular_tool_event():
+    token = store_html("<div>chart-html</div>")
+    tool_result = f"{{'_pylogue_html_id': '{token}', 'message': 'Chart rendered.'}}"
+    agent = _FakeAgentWithSingularToolEvents(tool_result=tool_result)
+    responder = AgnoResponder(agent=agent)
+
+    async def _run():
+        chunks = []
+        async for part in responder("plot"):
+            chunks.append(part)
+        return chunks
+
+    parts = asyncio.run(_run())
+
+    assert any("chart-html" in p for p in parts)
