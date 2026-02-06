@@ -1,4 +1,4 @@
-from .factory import app_factory
+from pylogue.shell import app_factory
 # from ...agents.ipl.main import agent
 # from ...agents.salesforce.main import agent
 from ...agents.haiku import agent
