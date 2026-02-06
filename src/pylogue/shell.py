@@ -236,12 +236,21 @@ def app_factory(
         return Div(
             Div(
                 H1(sidebar_title, cls="text-xl font-semibold"),
-                A(
-                    UkIcon("sign-out"),
-                    Span("Logout"),
-                    href=logout_href,
-                    cls=(ButtonT.secondary, "text-xs"),
-                ) if show_logout else None,
+                Div(
+                    Button(
+                        "Close",
+                        type="button",
+                        id="close-sidebar-btn",
+                        cls=(ButtonT.secondary, "text-xs mobile-only-inline"),
+                    ),
+                    A(
+                        UkIcon("sign-out"),
+                        Span("Logout"),
+                        href=logout_href,
+                        cls=(ButtonT.secondary, "text-xs"),
+                    ) if show_logout else None,
+                    cls="flex items-center gap-2",
+                ),
                 cls="sidebar-header",
             ),
             Button(
@@ -263,6 +272,12 @@ def app_factory(
                 cls="space-y-2",
             ),
             Div(
+                Button(
+                    "Chats",
+                    type="button",
+                    id="sidebar-toggle-btn",
+                    cls=(ButtonT.secondary, "mobile-only-inline"),
+                ),
                 Button(
                     UkIcon("download"),
                     cls="uk-button uk-button-text copy-chat-btn",
@@ -318,6 +333,7 @@ def app_factory(
 
     def _shell(request: Request):
         return Div(
+            Div(id="sidebar-backdrop", cls="sidebar-backdrop"),
             _sidebar(request),
             _main_panel(),
             cls="app-shell",
