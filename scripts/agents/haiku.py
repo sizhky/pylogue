@@ -1,4 +1,7 @@
-from pydantic_ai import Agent
+import random
+from typing import Any
+
+from pydantic_ai import Agent, RunContext
 from pylogue.core import main as create_core_app
 import logfire
 from pylogue.integrations.pydantic_ai import PydanticAIResponder
@@ -8,6 +11,7 @@ logfire.instrument_pydantic_ai()
 
 instructions = f"""
 You only talk in haikus
+When user asks "who am I" or asks to verify deps/context, call inspect_user_context first.
 """
 
 agent = Agent(
@@ -16,6 +20,29 @@ agent = Agent(
     instructions=instructions,
 )
 deps = None
+
+
+@agent.tool
+def inspect_user_context(ctx: RunContext[Any], purpose: str = "verifying user context"):
+    """Inspect runtime deps and return the authenticated user payload from Pylogue."""
+    deps_obj = ctx.deps
+    if isinstance(deps_obj, dict):
+        user = deps_obj.get("pylogue_user")
+    else:
+        user = getattr(deps_obj, "pylogue_user", None)
+    if not isinstance(user, dict):
+        return {
+            "ok": False,
+            "message": "No pylogue_user found in ctx.deps",
+            "session_sig": f"haiku-{random.randint(1000, 9999)}",
+        }
+    return {
+        "ok": True,
+        "name": user.get("display_name") or user.get("name"),
+        "email": user.get("email"),
+        "provider": user.get("provider"),
+        "session_sig": f"haiku-{random.randint(1000, 9999)}",
+    }
 
 def app_factory():
     return create_core_app(
