@@ -5,6 +5,9 @@ from pydantic_ai import Agent, RunContext
 from pylogue.core import main as create_core_app
 import logfire
 from pylogue.integrations.pydantic_ai import PydanticAIResponder
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logfire.configure()
 logfire.instrument_pydantic_ai()

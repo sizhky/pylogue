@@ -3,6 +3,7 @@ if (document.body) {
   document.body.dataset.disableCoreDownload = 'true';
 }
 let chatIndex = [];
+const MOBILE_QUERY = '(max-width: 920px)';
 
 const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M3 6h18"/>
@@ -63,6 +64,16 @@ const getActiveChatTitle = () => {
   if (!activeId) return '';
   const chat = getChatById(activeId);
   return chat?.title || '';
+};
+
+const isMobile = () => window.matchMedia(MOBILE_QUERY).matches;
+
+const openSidebar = () => {
+  document.body.classList.add('sidebar-open');
+};
+
+const closeSidebar = () => {
+  document.body.classList.remove('sidebar-open');
 };
 
 const renderChatList = (index) => {
@@ -187,6 +198,7 @@ const selectChat = async (chatId) => {
   renderChatList(chatIndex);
   const payload = await api.getChat(chatId);
   sendImport(payload);
+  if (isMobile()) closeSidebar();
 };
 
 const createChat = async () => {
@@ -197,6 +209,7 @@ const createChat = async () => {
   setActiveChatTitle(chat.title || 'New chat');
   renderChatList(chatIndex);
   sendImport({ cards: [] });
+  if (isMobile()) closeSidebar();
 };
 
 const confirmDelete = async (chatId, title) => {
@@ -258,10 +271,29 @@ const init = async () => {
   }
   renderChatList(chatIndex);
   if (active) await selectChat(active);
+  closeSidebar();
 };
 
 document.getElementById('new-chat-btn')?.addEventListener('click', () => {
   createChat();
+});
+
+document.getElementById('sidebar-toggle-btn')?.addEventListener('click', () => {
+  openSidebar();
+});
+
+document.getElementById('close-sidebar-btn')?.addEventListener('click', () => {
+  closeSidebar();
+});
+
+document.getElementById('sidebar-backdrop')?.addEventListener('click', () => {
+  closeSidebar();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeSidebar();
+  }
 });
 
 document.body.addEventListener('htmx:wsAfterMessage', () => {
