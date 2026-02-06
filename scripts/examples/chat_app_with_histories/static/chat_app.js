@@ -51,6 +51,17 @@ const setActiveChatId = (chatId) => {
 
 const getActiveChatId = () => document.body.dataset.activeChat || '';
 
+const setActiveChatTitle = (title) => {
+  document.body.dataset.activeChatTitle = title || '';
+};
+
+const getActiveChatTitle = () => {
+  const activeId = getActiveChatId();
+  if (!activeId) return '';
+  const chat = getChatById(activeId);
+  return chat?.title || '';
+};
+
 const renderChatList = (index) => {
   const list = document.getElementById('chat-list');
   if (!list) return;
@@ -137,6 +148,9 @@ const beginTitleEdit = (chatId, titleEl) => {
         }
       }
     }
+    if (chatId === getActiveChatId()) {
+      setActiveChatTitle(finalTitle);
+    }
     renderChatList(chatIndex);
   };
 
@@ -166,6 +180,7 @@ const selectChat = async (chatId) => {
   const chat = getChatById(chatId);
   if (!chat) return;
   setActiveChatId(chatId);
+  setActiveChatTitle(chat.title || 'New chat');
   renderChatList(chatIndex);
   const payload = await api.getChat(chatId);
   sendImport(payload);
@@ -176,6 +191,7 @@ const createChat = async () => {
   if (!chat) return;
   chatIndex = [chat, ...chatIndex];
   setActiveChatId(chat.id);
+  setActiveChatTitle(chat.title || 'New chat');
   renderChatList(chatIndex);
   sendImport({ cards: [] });
 };
@@ -219,6 +235,9 @@ const saveCurrentChat = async () => {
       chatIndex[idx] = { ...chatIndex[idx], ...saved };
       renderChatList(chatIndex);
     }
+    if (chatId === getActiveChatId()) {
+      setActiveChatTitle(saved.title || title || 'New chat');
+    }
   }
 };
 
@@ -231,6 +250,8 @@ const init = async () => {
   const active = chatIndex[0]?.id;
   if (active) {
     setActiveChatId(active);
+    const initial = getChatById(active);
+    setActiveChatTitle(initial?.title || 'New chat');
   }
   renderChatList(chatIndex);
   if (active) await selectChat(active);
@@ -246,6 +267,36 @@ document.body.addEventListener('htmx:wsAfterMessage', () => {
 
 (document.body).addEventListener('htmx:afterSwap', () => {
   saveCurrentChat();
+});
+
+document.addEventListener('click', (event) => {
+  const btn = event.target.closest('.copy-chat-btn');
+  if (!btn) return;
+  if (btn.classList.contains('upload-chat-btn')) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const exportInput = document.getElementById('chat-export');
+  const input = exportInput || document.getElementById('chat-data');
+  if (!input) return;
+  const text = input.value || '[]';
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const rawTitle = getActiveChatTitle();
+  const slug = String(rawTitle)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  link.href = url;
+  link.download = `${slug || 'pylogue-conversation'}-${timestamp}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  btn.dataset.copied = 'true';
+  setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
 });
 
 init();
