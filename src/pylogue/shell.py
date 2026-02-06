@@ -27,6 +27,7 @@ from pylogue.core import (
     EchoResponder,
     IMPORT_PREFIX,
     _register_google_auth_routes,
+    _session_cookie_name,
     google_oauth_config_from_env,
     get_core_headers,
     register_core_static,
@@ -97,6 +98,7 @@ def app_factory(
         else os.getenv("PYLOGUE_SESSION_SECRET")
     )
     app_kwargs = {"exts": "ws", "hdrs": tuple(headers), "pico": False}
+    app_kwargs["session_cookie"] = _session_cookie_name()
     if session_secret:
         app_kwargs["secret_key"] = session_secret
     app = MUFastHTML(**app_kwargs)
