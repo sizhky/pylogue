@@ -59,6 +59,7 @@ def _utc_iso() -> str:
 
 def app_factory(
     responder=None,
+    db_path: Path | str | None = None,
     sidebar_title: str = "Pylogue",
     sidebar_tag: str = "Multi-Chat",
     hero_tag: str = "PYLOGUE WRAPPER",
@@ -68,6 +69,8 @@ def app_factory(
         "start a new one, or return to previous conversations instantly."
     ),
 ) -> MUFastHTML:
+    resolved_db_path = Path(db_path) if db_path is not None else DB_PATH
+    local_db = Database(f"sqlite:///{resolved_db_path}")
     responder = responder or EchoResponder()
     headers = list(get_core_headers(include_markdown=True))
     headers.extend(
@@ -95,7 +98,7 @@ def app_factory(
 
     @app.route("/api/chats", methods=["GET"])
     def list_chats():
-        items = list(chats())
+        items = list(local_db.create(Chat, pk="id")())
         items.sort(key=lambda c: c.updated_at or c.created_at, reverse=True)
         return JSONResponse(
             [
@@ -111,6 +114,7 @@ def app_factory(
 
     @app.route("/api/chats", methods=["POST"])
     async def create_chat(request: Request):
+        chats = local_db.create(Chat, pk="id")
         data = await request.json()
         chat_id = data.get("id") or str(uuid4())
         title = data.get("title") or "New chat"
@@ -134,6 +138,7 @@ def app_factory(
 
     @app.route("/api/chats/{chat_id}", methods=["GET"])
     def get_chat(chat_id: str):
+        chats = local_db.create(Chat, pk="id")
         try:
             chat = chats[chat_id]
         except Exception:
@@ -149,6 +154,7 @@ def app_factory(
 
     @app.route("/api/chats/{chat_id}", methods=["POST"])
     async def save_chat(chat_id: str, request: Request):
+        chats = local_db.create(Chat, pk="id")
         data = await request.json()
         payload = data.get("payload") or {"cards": []}
         title = data.get("title") or "New chat"
@@ -175,6 +181,7 @@ def app_factory(
 
     @app.route("/api/chats/{chat_id}", methods=["DELETE"])
     def delete_chat(chat_id: str):
+        chats = local_db.create(Chat, pk="id")
         try:
             chats.delete(chat_id)
         except Exception:
