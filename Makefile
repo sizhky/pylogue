@@ -1,105 +1,90 @@
-.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8 test
+.PHONY: help clean clean-build clean-pyc clean-test lock sync tree lint format typecheck test coverage bump-patch bump-minor bump-major build publish publish-divami publish-test docs serve-docs
 
 .DEFAULT_GOAL := help
 
-define BROWSER_PYSCRIPT
-import os, webbrowser, sys
-
-from urllib.request import pathname2url
-
-webbrowser.open("file://" + pathname2url(os.path.abspath(sys.argv[1])))
-endef
-export BROWSER_PYSCRIPT
+UV ?= uv
 
 define PRINT_HELP_PYSCRIPT
 import re, sys
 
 for line in sys.stdin:
-	match = re.match(r'^([a-zA-Z_-]+):.*?## (.*)$$', line)
+	match = re.match(r'^([a-zA-Z0-9_./-]+):.*?## (.*)$$', line)
 	if match:
-		target, help = match.groups()
-		print("%-20s %s" % (target, help))
+		target, help_text = match.groups()
+		print(f"{target:20s} {help_text}")
 endef
 export PRINT_HELP_PYSCRIPT
 
-BROWSER := python -c "$$BROWSER_PYSCRIPT"
-
-help:
+help: ## show this help message
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+clean: clean-build clean-pyc clean-test ## remove build, cache, and test artifacts
 
 clean-build: ## remove build artifacts
-	rm -fr build/
-	rm -fr dist/
-	rm -fr .eggs/
-	find . -name '*.egg-info' -exec rm -fr {} +
-	find . -name '*.egg' -exec rm -fr {} +
+	rm -rf build/ dist/ .eggs/
+	find . -name '*.egg-info' -exec rm -rf {} +
+	find . -name '*.egg' -exec rm -rf {} +
 
-clean-pyc: ## remove Python file artifacts
+clean-pyc: ## remove Python bytecode artifacts
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
-	find . -name '__pycache__' -exec rm -fr {} +
+	find . -name '__pycache__' -exec rm -rf {} +
 
 clean-test: ## remove test and coverage artifacts
-	rm -fr .tox/
+	rm -rf .tox/ htmlcov/ .pytest_cache/
 	rm -f .coverage
-	rm -fr htmlcov/
-	rm -fr .pytest_cache
 
-lint/flake8: ## check style with flake8
-	flake8 pylogue tests
+lock: ## update uv.lock from pyproject.toml
+	$(UV) lock
 
+sync: ## sync local environment with lockfile and all extras
+	$(UV) sync --all-extras
 
-lint: lint/flake8 ## check style
+tree: ## show dependency tree
+	$(UV) tree
 
-test: ## run tests quickly with the default Python
-	pytest tests
+lint: ## run linter
+	$(UV) run ruff check .
 
-test-all: ## run tests on every Python version with tox
-	tox
+format: ## format code
+	$(UV) run ruff format .
 
-coverage: ## check code coverage quickly with the default Python
-	coverage run --source pylogue -m pytest
-	coverage report -m
-	coverage html
-	$(BROWSER) htmlcov/index.html
+typecheck: ## run mypy type checks
+	$(UV) run mypy .
 
-release: dist ## package and upload a release
-	twine upload dist/*
+test: ## run test suite
+	$(UV) run pytest tests
 
-dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+coverage: ## run tests with coverage report
+	$(UV) run coverage run --source src/pylogue -m pytest tests
+	$(UV) run coverage report -m
+
+build: clean-build ## build source and wheel distributions
+	rm -rf dist/ build/ *.egg-info
+	python -m build
 	ls -l dist
 
-publish: clean ## build and publish package to PyPI (using sizhky account)
-	python -m build
+publish: build ## upload to PyPI (repository: sizhky)
 	python -m twine upload --repository sizhky dist/*
 
-publish-divami: clean ## build and publish package to PyPI (using divami account)
-	python -m build
+publish-divami: build ## upload to PyPI (repository: divami)
 	python -m twine upload --repository divami dist/*
 
-publish-test: clean ## build and publish package to TestPyPI
-	python -m build
+publish-test: build ## upload to TestPyPI
 	python -m twine upload --repository testpypi dist/*
 
-install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+bump-patch: ## bump Python package version (patch)
+	$(UV) version --bump patch
 
-docs:
-	mkdocs build
+bump-minor: ## bump Python package version (minor)
+	$(UV) version --bump minor
 
-serve-docs: docs ## serve the documentation with mkdocs
-	uv run mkdocs serve
+bump-major: ## bump Python package version (major)
+	$(UV) version --bump major
 
-e:
-	nbdev_export
+docs: ## build documentation
+	$(UV) run mkdocs build
 
-setup:
-	git init
-	git add .
-	git commit -m "Initial commit"
-	uv sync
+serve-docs: ## serve documentation locally
+	$(UV) run mkdocs serve

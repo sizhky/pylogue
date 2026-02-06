@@ -36,7 +36,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "scripts.examples.ai.agno_app:app_factory",
+        "scripts.examples.ai.agno.haiku_chat:app_factory",
         host="0.0.0.0",
         port=5003,
         reload=True,

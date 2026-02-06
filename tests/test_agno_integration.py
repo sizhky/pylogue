@@ -22,8 +22,8 @@ class _FakeAgent:
         self.calls.append((run_input, kwargs))
 
         async def _stream():
-            yield _Chunk(event="RunResponse", content="Hel")
-            yield _Chunk(event="RunResponse", content="Hello")
+            yield _Chunk(event="RunContent", content="Hel")
+            yield _Chunk(event="RunContent", content="Hello")
             yield _Chunk(
                 event="ToolCallStarted",
                 tools=[{"tool_name": "search_docs", "tool_args": {"purpose": "Lookup"}, "tool_call_id": "tool-1"}],
@@ -39,6 +39,21 @@ class _FakeAgent:
                     }
                 ],
             )
+
+        return _stream()
+
+
+class _FakeAgentDirectStream:
+    def __init__(self):
+        self.instructions = "Base instructions"
+        self.calls = []
+
+    def arun(self, run_input, **kwargs):
+        self.calls.append((run_input, kwargs))
+
+        async def _stream():
+            yield _Chunk(event="RunContent", content="Hi")
+            yield _Chunk(event="RunContent", content="Hi there")
 
         return _stream()
 
@@ -72,6 +87,24 @@ def test_agno_responder_streams_and_tracks_history():
     assert kwargs["stream_events"] is True
     assert kwargs["user_id"] == "dev@example.com"
     assert "pylogue" in kwargs["additional_context"].lower()
+
+
+def test_agno_responder_accepts_direct_async_stream():
+    agent = _FakeAgentDirectStream()
+    responder = AgnoResponder(agent=agent, show_tool_details=False)
+
+    async def _run():
+        chunks = []
+        async for part in responder("hello"):
+            chunks.append(part)
+        return chunks
+
+    parts = asyncio.run(_run())
+
+    assert parts == ["Hi", " there"]
+    assert responder.message_history[-2]["content"] == "hello"
+    assert responder.message_history[-1]["content"] == "Hi there"
+    assert len(agent.calls) == 1
 
 
 def test_agno_responder_load_history_sanitizes_html():
