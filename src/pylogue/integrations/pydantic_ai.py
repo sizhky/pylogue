@@ -1,4 +1,5 @@
 # Pydantic AI integration for Pylogue
+import asyncio
 import html
 import json
 import re
@@ -14,6 +15,160 @@ def _sanitize_history_answer(answer: str) -> str:
     text = _TOOL_HTML_RE.sub("Rendered tool output.", answer)
     text = _TAG_RE.sub("", text)
     return html.unescape(text).strip()
+
+
+def _safe_json(value):
+    if value is None:
+        return "{}"
+    if isinstance(value, str):
+        try:
+            return json.dumps(json.loads(value), indent=2, sort_keys=True, ensure_ascii=True)
+        except json.JSONDecodeError:
+            return value
+    try:
+        return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True)
+    except TypeError:
+        return json.dumps(str(value), indent=2, sort_keys=True, ensure_ascii=True)
+
+
+def _truncate(text: str, limit: int = 100) -> str:
+    if not isinstance(text, str):
+        return ""
+    return text if len(text) <= limit else f"{text[:limit//2]} ... (truncated) ... {text[-limit//2:]}"
+
+
+def _get_tool_call_id(part):
+    return getattr(part, "tool_call_id", None) or getattr(part, "call_id", None)
+
+
+def _unwrap_tool_return(part_or_result, messages_module):
+    if isinstance(part_or_result, messages_module.BaseToolReturnPart):
+        return (
+            part_or_result.tool_name,
+            part_or_result.content,
+            part_or_result.tool_call_id,
+        )
+    return None
+
+
+def _extract_tool_result(event, messages_module):
+    part = getattr(event, "part", None)
+    if part is not None:
+        tool_name = getattr(part, "tool_name", None) or getattr(part, "name", None)
+        result = (
+            getattr(part, "content", None)
+            or getattr(part, "result", None)
+            or getattr(part, "return_value", None)
+            or getattr(part, "value", None)
+        )
+        call_id = _get_tool_call_id(part)
+        return tool_name, result, call_id
+    result = getattr(event, "result", None)
+    tool_name = getattr(event, "tool_name", None)
+    call_id = getattr(event, "tool_call_id", None) or getattr(event, "call_id", None)
+    unwrapped = _unwrap_tool_return(result, messages_module)
+    if unwrapped is not None:
+        tool_name = tool_name or unwrapped[0]
+        result = unwrapped[1]
+        call_id = call_id or unwrapped[2]
+    return tool_name, result, call_id
+
+
+def _format_tool_result_summary(tool_name: str, args, result):
+    tool_label = html.escape(tool_name or "tool")
+    safe_args = html.escape(_safe_json(args))
+    safe_result = html.escape(_truncate(_safe_json(result)))
+    return (
+        "\n\n"
+        f'<details class="tool-call"><summary>Tool: {tool_label}</summary>'
+        f"<div><strong>Args</strong></div>"
+        f"<pre><code>{safe_args}</code></pre>"
+        f"<div><strong>Result</strong></div>"
+        f"<pre><code>{safe_result}</code></pre></details>\n\n"
+    )
+
+
+def _safe_dom_id(value: str | None) -> str:
+    if not value:
+        return "tool-status"
+    safe = []
+    for ch in str(value):
+        if ch.isalnum() or ch in {"-", "_"}:
+            safe.append(ch)
+    return "".join(safe) or "tool-status"
+
+
+def _format_tool_status_running(tool_name: str, args, call_id: str | None):
+    purpose = None
+    if isinstance(args, dict):
+        purpose = args.get("purpose")
+    label = purpose or (tool_name.replace("_", " ").title() if tool_name else "Working")
+    status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
+    safe_label = html.escape(str(label))
+    return (
+        f'<div id="{status_id}" class="tool-status tool-status--running">{safe_label}</div><br />\n\n'
+    )
+
+
+def _format_tool_status_done(args, call_id: str | None):
+    if isinstance(args, dict):
+        purpose = args.get("purpose")
+        if isinstance(purpose, str) and purpose.strip():
+            safe_label = purpose.strip()
+        else:
+            safe_label = "Completed"
+    else:
+        safe_label = "Completed"
+    status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
+    safe_label_escaped = html.escape(safe_label)
+    return (
+        f'<div class="tool-status-update" data-target-id="{status_id}">'
+        f"{safe_label_escaped}</div><br />\n\n"
+    )
+
+
+def _resolve_tool_html(result):
+    if isinstance(result, dict) and "_pylogue_html_id" in result:
+        token = result.get("_pylogue_html_id")
+        try:
+            from pylogue.embeds import take_html
+        except Exception:
+            return None
+        return take_html(token)
+    return None
+
+
+def _should_render_tool_result_raw(tool_name: str | None, result) -> bool:
+    if not isinstance(result, str):
+        return False
+    stripped = result.lstrip()
+    if not stripped.startswith("<"):
+        return False
+    # Allow raw HTML for tool results (e.g., chart renderers).
+    return True
+
+
+def _wrap_tool_html(result: str) -> str:
+    stripped = result.strip()
+    if stripped.startswith("<div") and stripped.endswith("</div>"):
+        return result
+    return f'<div class="tool-html">{result}</div>'
+
+
+def _inject_user_context(text: str, context) -> str:
+    user = context.get("user") if isinstance(context, dict) else None
+    if not isinstance(user, dict):
+        return text
+    display_name = user.get("display_name")
+    email = user.get("email")
+    if not (display_name or email):
+        return text
+    details = []
+    if display_name:
+        details.append(f"name={display_name}")
+    if email:
+        details.append(f"email={email}")
+    return "User profile context: " + ", ".join(details) + "\n\nUser message:\n" + text
 
 
 class PydanticAIResponder:
@@ -133,156 +288,16 @@ class PydanticAIResponder:
         self.message_history = history
     
     async def __call__(self, text: str, context=None):
-        import asyncio
         from pydantic_ai import messages
         from pydantic_ai.run import AgentRunResultEvent
 
         pending_tool_calls = {}
         tool_call_counter = 0
 
-        def _safe_json(value):
-            if value is None:
-                return "{}"
-            if isinstance(value, str):
-                try:
-                    return json.dumps(json.loads(value), indent=2, sort_keys=True, ensure_ascii=True)
-                except json.JSONDecodeError:
-                    return value
-            try:
-                return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True)
-            except TypeError:
-                return json.dumps(str(value), indent=2, sort_keys=True, ensure_ascii=True)
-
-        def _truncate(text: str, limit: int = 100) -> str:
-            if not isinstance(text, str):
-                return ""
-            return text if len(text) <= limit else f"{text[:limit//2]} ... (truncated) ... {text[-limit//2:]}"
-
-        def _get_tool_call_id(part):
-            return getattr(part, "tool_call_id", None) or getattr(part, "call_id", None)
-
-        def _unwrap_tool_return(part_or_result):
-            if isinstance(part_or_result, messages.BaseToolReturnPart):
-                return (
-                    part_or_result.tool_name,
-                    part_or_result.content,
-                    part_or_result.tool_call_id,
-                )
-            return None
-
-        def _extract_tool_result(event):
-            part = getattr(event, "part", None)
-            if part is not None:
-                tool_name = getattr(part, "tool_name", None) or getattr(part, "name", None)
-                result = (
-                    getattr(part, "content", None)
-                    or getattr(part, "result", None)
-                    or getattr(part, "return_value", None)
-                    or getattr(part, "value", None)
-                )
-                call_id = _get_tool_call_id(part)
-                return tool_name, result, call_id
-            result = getattr(event, "result", None)
-            tool_name = getattr(event, "tool_name", None)
-            call_id = getattr(event, "tool_call_id", None) or getattr(event, "call_id", None)
-            unwrapped = _unwrap_tool_return(result)
-            if unwrapped is not None:
-                tool_name = tool_name or unwrapped[0]
-                result = unwrapped[1]
-                call_id = call_id or unwrapped[2]
-            return tool_name, result, call_id
-
-        def _format_tool_result_summary(tool_name: str, args, result):
-            tool_label = html.escape(tool_name or "tool")
-            safe_args = html.escape(_safe_json(args))
-            safe_result = html.escape(_truncate(_safe_json(result)))
-            return (
-                "\n\n"
-                f'<details class="tool-call"><summary>Tool: {tool_label}</summary>'
-                f"<div><strong>Args</strong></div>"
-                f"<pre><code>{safe_args}</code></pre>"
-                f"<div><strong>Result</strong></div>"
-                f"<pre><code>{safe_result}</code></pre></details>\n\n"
-            )
-
-        def _safe_dom_id(value: str | None) -> str:
-            if not value:
-                return "tool-status"
-            safe = []
-            for ch in str(value):
-                if ch.isalnum() or ch in {"-", "_"}:
-                    safe.append(ch)
-            return "".join(safe) or "tool-status"
-
-        def _format_tool_status_running(tool_name: str, args, call_id: str | None):
-            purpose = None
-            if isinstance(args, dict):
-                purpose = args.get("purpose")
-            label = purpose or (tool_name.replace("_", " ").title() if tool_name else "Working")
-            status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
-            safe_label = html.escape(str(label))
-            return (
-                f'<div id="{status_id}" class="tool-status tool-status--running">{safe_label}</div><br />\n\n'
-            )
-
-        def _format_tool_status_done(args, call_id: str | None):
-            if isinstance(args, dict):
-                purpose = args.get("purpose")
-                if isinstance(purpose, str) and purpose.strip():
-                    safe_label = purpose.strip()
-                else:
-                    safe_label = "Completed"
-            else:
-                safe_label = "Completed"
-            status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
-            safe_label_escaped = html.escape(safe_label)
-            return (
-                f'<div class="tool-status-update" data-target-id="{status_id}">'
-                f'{safe_label_escaped}</div><br />\n\n'
-            )
-
-        def _format_tool_result_brief(tool_name: str, args, result):
-            if isinstance(args, dict):
-                purpose = args.get("purpose")
-                if isinstance(purpose, str) and purpose.strip():
-                    return f"{purpose.strip()}\n\n"
-            if isinstance(result, dict):
-                message = result.get("message") or result.get("summary")
-                if message:
-                    return f"{message}\n\n"
-            if isinstance(result, str) and result.strip():
-                return f"{result}\n\n"
-            if tool_name:
-                return f"{tool_name.replace('_', ' ').title()} completed.\n\n"
-            return "Tool completed.\n\n"
-
-        def _resolve_tool_html(result):
-            if isinstance(result, dict) and "_pylogue_html_id" in result:
-                token = result.get("_pylogue_html_id")
-                try:
-                    from pylogue.embeds import take_html
-                except Exception:
-                    return None
-                return take_html(token)
-            return None
-
-        def _should_render_tool_result_raw(tool_name: str | None, result) -> bool:
-            if not isinstance(result, str):
-                return False
-            stripped = result.lstrip()
-            if not stripped.startswith("<"):
-                return False
-            # Allow raw HTML for tool results (e.g., chart renderers).
-            return True
-
-        def _wrap_tool_html(result: str) -> str:
-            stripped = result.strip()
-            if stripped.startswith("<div") and stripped.endswith("</div>"):
-                return result
-            return f'<div class="tool-html">{result}</div>'
+        run_text = _inject_user_context(text, context)
 
         async for event in self.agent.run_stream_events(
-            text,
+            run_text,
             message_history=self.message_history,
             deps=self.agent_deps,
         ):
@@ -326,7 +341,7 @@ class PydanticAIResponder:
                 "builtin_tool_return",
                 "tool_return",
             }:
-                tool_name, result, call_id = _extract_tool_result(event)
+                tool_name, result, call_id = _extract_tool_result(event, messages)
                 if call_id in pending_tool_calls:
                     tool_name, args = pending_tool_calls.pop(call_id)
                 else:

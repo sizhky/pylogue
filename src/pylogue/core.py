@@ -95,6 +95,47 @@ def _connection_auth(conn):
     return None
 
 
+def _user_context_from_auth(auth):
+    if not isinstance(auth, dict):
+        return None
+    name = auth.get("name") or auth.get("username")
+    email = auth.get("email")
+    return {
+        "name": name,
+        "email": email,
+        "display_name": name or email,
+        "provider": auth.get("provider"),
+    }
+
+
+def _build_responder_context(conn):
+    auth = _connection_auth(conn)
+    if not auth:
+        return None
+    return {
+        "auth": auth,
+        "user": _user_context_from_auth(auth),
+    }
+
+
+def _invoke_responder(responder, prompt: str, context):
+    try:
+        signature = inspect.signature(responder)
+    except (TypeError, ValueError):
+        signature = None
+
+    if signature is not None:
+        params = signature.parameters
+        if "context" in params or any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+        ):
+            return responder(prompt, context=context)
+    try:
+        return responder(prompt)
+    except TypeError:
+        return responder(prompt, context)
+
+
 def _oauth_base_url(request: Request) -> str:
     explicit = os.getenv("PYLOGUE_PUBLIC_URL")
     if explicit:
@@ -224,8 +265,13 @@ def register_core_static(app):
         return FileResponse(_CORE_STATIC_DIR / "pylogue-markdown.js")
 
 class EchoResponder:
-    async def __call__(self, message: str):
-        response = f"ECHO:\n{message}"
+    async def __call__(self, message: str, context=None):
+        user = context.get("user") if isinstance(context, dict) else None
+        display_name = user.get("display_name") if isinstance(user, dict) else None
+        if display_name:
+            response = f"[ECHO] {display_name}:\n{message}"
+        else:
+            response = f"[ECHO]:\n{message}"
         for ch in response:
             await asyncio.sleep(0.005)
             yield ch
@@ -410,6 +456,7 @@ def register_ws_routes(
             "cards": [],
             "responder": responder_factory() if responder_factory else responder,
             "task": None,
+            "context": _build_responder_context(ws),
         }
 
     def _on_disconnect(ws):
@@ -431,17 +478,25 @@ def register_ws_routes(
                 "cards": [],
                 "responder": responder_factory() if responder_factory else responder,
                 "task": None,
+                "context": _build_responder_context(ws),
             }
             sessions[ws_id] = session
         cards = session["cards"]
         session_responder = session["responder"]
         current_task = session.get("task")
+        context = _build_responder_context(ws)
+        if context is not None:
+            session["context"] = context
 
         async def _run_message(prompt: str):
             cards.append({"id": str(len(cards)), "question": prompt, "answer": ""})
             await send(render_cards(cards))
             try:
-                result = session_responder(prompt)
+                result = _invoke_responder(
+                    session_responder,
+                    prompt,
+                    context=session.get("context"),
+                )
                 if inspect.isasyncgen(result):
                     async for chunk in result:
                         cards[-1]["answer"] += str(chunk)
