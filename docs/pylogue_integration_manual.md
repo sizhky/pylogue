@@ -67,7 +67,7 @@ Responders can be synchronous, async, or async generators. Streaming happens whe
 - **Async responder**: returns a string (no streaming).
 - **Async generator**: yields chunks (streaming).
 
-If you use `PydanticAIResponder`, it streams by default.
+If you use `PydanticAIResponder` or `AgnoResponder`, it streams by default.
 
 **History & Persistence**
 Pylogue doesn’t enforce history storage. You can choose where to keep it.
@@ -95,5 +95,6 @@ In the chat app with histories, the flow is:
 **Where to Look in This Repo**
 - Core runtime: `src/pylogue/core.py`
 - Pydantic AI responder: `src/pylogue/integrations/pydantic_ai.py`
+- Agno responder: `src/pylogue/integrations/agno.py`
 - Multi-history app: `src/pylogue/shell.py`
 - JS UI logic: `scripts/examples/chat_app_with_histories/static/chat_app.js`

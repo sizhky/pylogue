@@ -6,7 +6,7 @@ A FastHTML‑first, streaming chat framework with enough structure to stay polit
 
 ## What It Is
 - **Core runtime** for streaming chat over WebSockets
-- **Responder integration** (e.g. Pydantic‑AI) with token streaming
+- **Responder integration** (e.g. Pydantic‑AI, Agno) with token streaming
 - **Composable UI** helpers for chat cards, input, markdown, and tool status
 - **Optional history** storage (local or SQLite via FastSQL)
 
@@ -107,6 +107,7 @@ When enabled, Pylogue registers:
 ## Folder Map
 - Core runtime: `src/pylogue/core.py`
 - Pydantic‑AI responder: `src/pylogue/integrations/pydantic_ai.py`
+- Agno responder: `src/pylogue/integrations/agno.py`
 - Multi‑chat app: `scripts/examples/chat_app_with_histories/`
 
 ## Notes
