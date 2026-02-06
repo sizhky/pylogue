@@ -281,7 +281,7 @@ def app_factory(
     @app.route("/")
     def home():
         return (
-            Title("Pylogue Multi-Chat"),
+            Title(hero_title),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             Body(
                 _shell(),
