@@ -28,7 +28,7 @@ class PydanticAIResponder:
         "prefer vertical layouts for flowcharts and sequence diagrams. "
         "Render math using LaTeX syntax within $$ ... $$ blocks or inline with $ ... $."
         "when embedding HTML do not wrap it inside ```html ... ``` blocks, just output the raw HTML directly. Do not add <html> or <body> tags."
-    )
+        "Just because you can respond with HTML or generate mermaid diagrams does not mean you should always do that. Apart from accuracy of response, your next biggest goals is to save as many tokens as possible while ensuring the response is clear and complete.")
 
     def __init__(
         self,
