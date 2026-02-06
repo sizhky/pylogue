@@ -1,6 +1,7 @@
 import html
 import json
 import re
+import ast
 from typing import Any, Optional
 
 PYLOGUE_INSTRUCTIONS = (
@@ -102,8 +103,19 @@ def format_tool_status_done(args, call_id: str | None):
 
 
 def resolve_tool_html(result):
-    if isinstance(result, dict) and "_pylogue_html_id" in result:
-        token = result.get("_pylogue_html_id")
+    parsed_result = result
+    if isinstance(parsed_result, str):
+        stripped = parsed_result.strip()
+        if stripped.startswith("{") and stripped.endswith("}"):
+            try:
+                parsed_result = json.loads(stripped)
+            except Exception:
+                try:
+                    parsed_result = ast.literal_eval(stripped)
+                except Exception:
+                    parsed_result = result
+    if isinstance(parsed_result, dict) and "_pylogue_html_id" in parsed_result:
+        token = parsed_result.get("_pylogue_html_id")
         try:
             from pylogue.embeds import take_html
         except Exception:

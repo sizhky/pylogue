@@ -76,12 +76,27 @@ def _normalize_tool_payload(tool_entry: Any) -> tuple[str | None, Any, Any, str 
 
 
 def _extract_tools(chunk) -> list[tuple[str | None, Any, Any, str | None]]:
+    payloads: list[Any] = []
+
     tools = getattr(chunk, "tools", None)
-    if isinstance(tools, dict):
-        tools = [tools]
-    if not isinstance(tools, list):
-        return []
-    return [_normalize_tool_payload(t) for t in tools]
+    if isinstance(tools, list):
+        payloads.extend(tools)
+    elif tools is not None:
+        payloads.append(tools)
+
+    # Agno ToolCallStarted/ToolCallCompleted events expose singular `tool`.
+    tool = getattr(chunk, "tool", None)
+    if tool is not None:
+        payloads.append(tool)
+
+    # Some providers can expose tool executions directly.
+    tool_executions = getattr(chunk, "tool_executions", None)
+    if isinstance(tool_executions, list):
+        payloads.extend(tool_executions)
+    elif tool_executions is not None:
+        payloads.append(tool_executions)
+
+    return [_normalize_tool_payload(t) for t in payloads]
 
 
 def _is_event(event_value, expected_name: str) -> bool:
