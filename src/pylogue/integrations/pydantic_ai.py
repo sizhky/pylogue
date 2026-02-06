@@ -1,5 +1,6 @@
 # Pydantic AI integration for Pylogue
 import asyncio
+import copy
 import html
 import json
 import re
@@ -155,20 +156,31 @@ def _wrap_tool_html(result: str) -> str:
     return f'<div class="tool-html">{result}</div>'
 
 
-def _inject_user_context(text: str, context) -> str:
+def _merge_user_into_deps(base_deps, context):
     user = context.get("user") if isinstance(context, dict) else None
     if not isinstance(user, dict):
-        return text
-    display_name = user.get("display_name")
-    email = user.get("email")
-    if not (display_name or email):
-        return text
-    details = []
-    if display_name:
-        details.append(f"name={display_name}")
-    if email:
-        details.append(f"email={email}")
-    return "User profile context: " + ", ".join(details) + "\n\nUser message:\n" + text
+        return base_deps
+
+    # No baseline deps configured: pass a lightweight mapping as deps.
+    if base_deps is None:
+        return {"pylogue_user": user}
+
+    # Common case for dict-based deps.
+    if isinstance(base_deps, dict):
+        merged = dict(base_deps)
+        merged["pylogue_user"] = user
+        return merged
+
+    # Try to preserve existing deps type while attaching user context.
+    try:
+        merged = copy.copy(base_deps)
+    except Exception:
+        merged = base_deps
+    try:
+        setattr(merged, "pylogue_user", user)
+        return merged
+    except Exception:
+        return base_deps
 
 
 class PydanticAIResponder:
@@ -294,12 +306,12 @@ class PydanticAIResponder:
         pending_tool_calls = {}
         tool_call_counter = 0
 
-        run_text = _inject_user_context(text, context)
+        run_deps = _merge_user_into_deps(self.agent_deps, context)
 
         async for event in self.agent.run_stream_events(
-            run_text,
+            text,
             message_history=self.message_history,
-            deps=self.agent_deps,
+            deps=run_deps,
         ):
             kind = getattr(event, "event_kind", "")
 
