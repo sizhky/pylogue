@@ -1,4 +1,7 @@
 const IMPORT_PREFIX = document.body?.dataset.importPrefix || '__PYLOGUE_IMPORT__:';
+if (document.body) {
+  document.body.dataset.disableCoreDownload = 'true';
+}
 let chatIndex = [];
 
 const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -7,6 +10,11 @@ const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
   <path d="M6 6l1 14h10l1-14"/>
   <path d="M10 11v6"/>
   <path d="M14 11v6"/>
+</svg>`;
+
+const PENCIL_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M12 20h9"/>
+  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>
 </svg>`;
 
 const api = {
@@ -46,6 +54,17 @@ const setActiveChatId = (chatId) => {
 
 const getActiveChatId = () => document.body.dataset.activeChat || '';
 
+const setActiveChatTitle = (title) => {
+  document.body.dataset.activeChatTitle = title || '';
+};
+
+const getActiveChatTitle = () => {
+  const activeId = getActiveChatId();
+  if (!activeId) return '';
+  const chat = getChatById(activeId);
+  return chat?.title || '';
+};
+
 const renderChatList = (index) => {
   const list = document.getElementById('chat-list');
   if (!list) return;
@@ -61,11 +80,15 @@ const renderChatList = (index) => {
         <div class="chat-item-title" data-chat-title="true">${chat.title}</div>
         <div class="chat-item-meta">${formatTime(chat.updated_at)}</div>
       </div>
-      <span class="chat-item-delete" title="Delete chat" aria-label="Delete chat">${TRASH_SVG}</span>
+      <div class="chat-item-actions">
+        <span class="chat-item-edit" title="Edit title" aria-label="Edit title">${PENCIL_SVG}</span>
+        <span class="chat-item-delete" title="Delete chat" aria-label="Delete chat">${TRASH_SVG}</span>
+      </div>
     `;
     btn.addEventListener('click', () => selectChat(chat.id));
     const titleEl = btn.querySelector('[data-chat-title="true"]');
-    titleEl?.addEventListener('click', (event) => {
+    const edit = btn.querySelector('.chat-item-edit');
+    edit?.addEventListener('click', (event) => {
       event.stopPropagation();
       beginTitleEdit(chat.id, titleEl);
     });
@@ -128,6 +151,9 @@ const beginTitleEdit = (chatId, titleEl) => {
         }
       }
     }
+    if (chatId === getActiveChatId()) {
+      setActiveChatTitle(finalTitle);
+    }
     renderChatList(chatIndex);
   };
 
@@ -157,6 +183,7 @@ const selectChat = async (chatId) => {
   const chat = getChatById(chatId);
   if (!chat) return;
   setActiveChatId(chatId);
+  setActiveChatTitle(chat.title || 'New chat');
   renderChatList(chatIndex);
   const payload = await api.getChat(chatId);
   sendImport(payload);
@@ -167,6 +194,7 @@ const createChat = async () => {
   if (!chat) return;
   chatIndex = [chat, ...chatIndex];
   setActiveChatId(chat.id);
+  setActiveChatTitle(chat.title || 'New chat');
   renderChatList(chatIndex);
   sendImport({ cards: [] });
 };
@@ -210,6 +238,9 @@ const saveCurrentChat = async () => {
       chatIndex[idx] = { ...chatIndex[idx], ...saved };
       renderChatList(chatIndex);
     }
+    if (chatId === getActiveChatId()) {
+      setActiveChatTitle(saved.title || title || 'New chat');
+    }
   }
 };
 
@@ -222,6 +253,8 @@ const init = async () => {
   const active = chatIndex[0]?.id;
   if (active) {
     setActiveChatId(active);
+    const initial = getChatById(active);
+    setActiveChatTitle(initial?.title || 'New chat');
   }
   renderChatList(chatIndex);
   if (active) await selectChat(active);
@@ -237,6 +270,37 @@ document.body.addEventListener('htmx:wsAfterMessage', () => {
 
 (document.body).addEventListener('htmx:afterSwap', () => {
   saveCurrentChat();
+});
+
+document.addEventListener('click', (event) => {
+  const btn = event.target.closest('.copy-chat-btn');
+  if (!btn) return;
+  if (btn.classList.contains('upload-chat-btn')) return;
+  console.log('[chat_app] download override handler fired');
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const exportInput = document.getElementById('chat-export');
+  const input = exportInput || document.getElementById('chat-data');
+  if (!input) return;
+  const text = input.value || '[]';
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const rawTitle = getActiveChatTitle();
+  const slug = String(rawTitle)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  link.href = url;
+  link.download = `${slug || 'pylogue-conversation'}-${timestamp}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  btn.dataset.copied = 'true';
+  setTimeout(() => { btn.dataset.copied = 'false'; }, 1200);
 });
 
 init();

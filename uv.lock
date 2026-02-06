@@ -3059,7 +3059,7 @@ crypto = [
 
 [[package]]
 name = "pylogue"
-version = "0.3.11"
+version = "0.3.16"
 source = { editable = "." }
 dependencies = [
     { name = "altair" },

@@ -380,11 +380,21 @@
                 let mermaidCounter = 0;
                 const mermaidStates = {};
                 const mermaidCache = new Map();
+                const mermaidRenderPromises = new Map();
 
                 const ensureMermaid = () => {
                     if (mermaidReady) return;
                     mermaid.initialize({ startOnLoad: false });
                     mermaidReady = true;
+                };
+
+                const hashMermaidCode = (text) => {
+                    let hash = 0;
+                    for (let i = 0; i < text.length; i += 1) {
+                        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+                        hash |= 0;
+                    }
+                    return `m${Math.abs(hash)}`;
                 };
 
                 const applyMermaidState = (wrapper, state) => {
@@ -494,9 +504,22 @@
                     check();
                 };
 
+                const ensureMermaidInteractions = (root = document) => {
+                    const wrappers = root.querySelectorAll('.mermaid-wrapper');
+                    wrappers.forEach((wrapper) => {
+                        if (wrapper.dataset.mermaidInteractive === 'true') return;
+                        if (wrapper.querySelector('svg')) {
+                            initMermaidInteraction(wrapper);
+                        } else {
+                            scheduleMermaidInteraction(wrapper);
+                        }
+                    });
+                };
+
                 const createMermaidContainer = (codeText) => {
                     mermaidCounter += 1;
                     const diagramId = `chat-mermaid-${mermaidCounter}`;
+                    const codeKey = String(codeText || '').slice(0, 120);
 
                     const container = document.createElement('div');
                     container.className = 'mermaid-container';
@@ -539,6 +562,49 @@
                     return { container, wrapper };
                 };
 
+                const renderMermaidWrapper = async (wrapper) => {
+                    if (!wrapper || wrapper.dataset.mermaidRendering === 'true') return;
+                    const codeText = wrapper.dataset.mermaidCode || '';
+                    if (!codeText.trim()) return;
+                    const cacheHit = mermaidCache.get(codeText);
+                    if (cacheHit) {
+                        wrapper.innerHTML = cacheHit;
+                        wrapper.dataset.mermaidRendered = 'true';
+                        wrapper.dataset.mermaidRendering = 'false';
+                        scheduleMermaidInteraction(wrapper);
+                        return;
+                    }
+                    const renderId = `${hashMermaidCode(codeText)}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                    wrapper.dataset.mermaidRendering = 'true';
+                    ensureMermaid();
+                    let promise = mermaidRenderPromises.get(codeText);
+                    if (!promise) {
+                        promise = mermaid.render(renderId, codeText);
+                        mermaidRenderPromises.set(codeText, promise);
+                    }
+                    try {
+                        const result = await promise;
+                        const svg = result && result.svg ? result.svg : '';
+                        if (!svg) {
+                            throw new Error('Mermaid render returned empty svg');
+                        }
+                        wrapper.innerHTML = svg;
+                        if (result && typeof result.bindFunctions === 'function') {
+                            result.bindFunctions(wrapper);
+                        }
+                        mermaidCache.set(codeText, svg);
+                        wrapper.dataset.mermaidRendered = 'true';
+                        wrapper.dataset.mermaidError = 'false';
+                        scheduleMermaidInteraction(wrapper);
+                    } catch (err) {
+                        wrapper.dataset.mermaidError = 'true';
+                        console.warn('[mermaid] render failed', err);
+                    } finally {
+                        wrapper.dataset.mermaidRendering = 'false';
+                        mermaidRenderPromises.delete(codeText);
+                    }
+                };
+
                 const resetMermaidZoom = (id) => {
                     const state = mermaidStates[id];
                     const wrapper = document.getElementById(id);
@@ -574,7 +640,7 @@
 
                 const upgradeMermaidBlocks = (root = document) => {
                     const blocks = root.querySelectorAll('pre > code.language-mermaid');
-                    const nodes = [];
+                    const wrappers = [];
                     blocks.forEach((code) => {
                         if (code.dataset.mermaidProcessed === 'true') return;
                         const markedRoot = code.closest('.marked');
@@ -595,31 +661,23 @@
                             scheduleMermaidInteraction(wrapper);
                             return;
                         }
-                        nodes.push(wrapper.querySelector('pre.mermaid'));
+                        if (wrapper.dataset.mermaidRendered === 'true' || wrapper.dataset.mermaidRendering === 'true') {
+                            return;
+                        }
+                        wrappers.push(wrapper);
                     });
-                    if (nodes.length === 0) return;
+                    if (wrappers.length === 0) return;
                     if (mermaidRenderTimer) {
                         clearTimeout(mermaidRenderTimer);
                     }
                     mermaidRenderTimer = setTimeout(() => {
-                        ensureMermaid();
-                        mermaid.run({ nodes }).then(() => {
+                        Promise.allSettled(wrappers.map(renderMermaidWrapper)).then(() => {
                             let didScroll = false;
-                            nodes.forEach((node) => {
-                                const wrapper = node.closest('.mermaid-wrapper');
-                                if (!wrapper) return;
-                                wrapper.dataset.mermaidRendered = 'true';
-                                const codeText = wrapper.dataset.mermaidCode || '';
-                                const svg = wrapper.querySelector('svg');
-                                if (codeText && svg) {
-                                    mermaidCache.set(codeText, svg.outerHTML);
-                                }
-                                scheduleMermaidInteraction(wrapper);
-                                if (!didScroll && window.__forceScrollToBottom) {
-                                    didScroll = true;
-                                    window.__forceScrollToBottom();
-                                }
-                            });
+                            if (!didScroll && window.__forceScrollToBottom) {
+                                didScroll = true;
+                                window.__forceScrollToBottom();
+                            }
+                            ensureMermaidInteractions(document);
                         });
                     }, 250);
                 };
@@ -665,13 +723,18 @@
                 document.addEventListener('DOMContentLoaded', () => {
                     observeMermaid();
                     setTimeout(() => upgradeMermaidBlocks(document), 0);
+                    setTimeout(() => ensureMermaidInteractions(document), 0);
                 });
 
                 document.body.addEventListener('htmx:afterSwap', (event) => {
                     upgradeMermaidBlocks(event.target || document);
+                    ensureMermaidInteractions(event.target || document);
                 });
 
                 if (window.htmx && typeof window.htmx.onLoad === 'function') {
-                    window.htmx.onLoad((root) => upgradeMermaidBlocks(root || document));
+                    window.htmx.onLoad((root) => {
+                        upgradeMermaidBlocks(root || document);
+                        ensureMermaidInteractions(root || document);
+                    });
                 }
                 
