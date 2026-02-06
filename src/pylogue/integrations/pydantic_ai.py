@@ -194,7 +194,7 @@ class PydanticAIResponder:
 
         def _format_tool_result_summary(tool_name: str, args, result):
             tool_label = html.escape(tool_name or "tool")
-            safe_args = html.escape(_truncate(_safe_json(args)))
+            safe_args = html.escape(_safe_json(args))
             safe_result = html.escape(_truncate(_safe_json(result)))
             return (
                 "\n\n"

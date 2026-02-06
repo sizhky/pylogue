@@ -1,12 +1,13 @@
 from .factory import app_factory
-from ...agents.ipl.main import agent as ipl_agent
-# from ...agents.salesforce.main import agent as salesforce_agent
+# from ...agents.ipl.main import agent
+# from ...agents.salesforce.main import agent
+from ...agents.haiku import agent
 from pylogue.integrations.pydantic_ai import PydanticAIResponder
 
-ipl_agent_responder = PydanticAIResponder(agent=ipl_agent)
+agent_responder = PydanticAIResponder(agent=agent)
 
 def _app_factory():
-    return app_factory(responder=ipl_agent_responder)
+    return app_factory(responder=agent_responder)
 
 if __name__ == "__main__":
     import uvicorn

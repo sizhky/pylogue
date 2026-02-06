@@ -1,5 +1,6 @@
 
             document.documentElement.classList.remove('dark');
+            const STOP_PREFIX = '__PYLOGUE_STOP__:';
             const decodeCopyB64 = (value) => {
               if (!value) return '';
               try {
@@ -45,8 +46,16 @@
               const url = URL.createObjectURL(blob);
               const link = document.createElement('a');
               const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+              const rawTitle = document.body?.dataset?.activeChatTitle
+                || document.querySelector('.chat-item.is-active [data-chat-title="true"]')?.textContent
+                || '';
+              const slug = String(rawTitle)
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
               link.href = url;
-              link.download = `pylogue-conversation-${timestamp}.json`;
+              link.download = `${slug || 'pylogue-conversation'}-${timestamp}.json`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
@@ -83,6 +92,45 @@
               const input = document.getElementById('msg');
               if (!input) return;
               input.value = '';
+            });
+            const setSendMode = (mode) => {
+              const btn = document.getElementById('chat-send-btn');
+              if (!btn) return;
+              if (mode === 'stop') {
+                btn.dataset.mode = 'stop';
+                btn.textContent = 'Stop';
+              } else {
+                btn.dataset.mode = 'send';
+                btn.textContent = 'Send';
+              }
+            };
+            document.body.addEventListener('htmx:wsBeforeSend', (event) => {
+              const form = event.detail && event.detail.elt;
+              if (!form || form.id !== 'form') return;
+              const input = document.getElementById('msg');
+              if (input && input.value && input.value.startsWith(STOP_PREFIX)) {
+                setSendMode('send');
+                return;
+              }
+              setSendMode('stop');
+            });
+            document.body.addEventListener('htmx:afterSwap', (event) => {
+              const target = event.detail && event.detail.target;
+              if (target && target.id === 'chat-export') {
+                setSendMode('send');
+              }
+            });
+            document.addEventListener('click', (event) => {
+              const btn = event.target.closest('#chat-send-btn');
+              if (!btn) return;
+              if (btn.dataset.mode !== 'stop') return;
+              event.preventDefault();
+              event.stopPropagation();
+              const form = document.getElementById('form');
+              const input = document.getElementById('msg');
+              if (!form || !input) return;
+              input.value = STOP_PREFIX;
+              htmx.trigger(form, 'submit');
             });
             document.addEventListener('keydown', (event) => {
               if (event.key !== 'Enter') return;

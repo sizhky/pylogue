@@ -236,7 +236,7 @@ def app_factory(responder=None) -> MUFastHTML:
             Form(
                 render_input(),
                 Div(
-                    Button("Send", cls=ButtonT.primary, type="submit"),
+                    Button("Send", cls=ButtonT.primary, type="submit", id="chat-send-btn"),
                     P("Cmd/Ctrl+Enter to send", cls="text-xs text-slate-400"),
                     cls="flex flex-col gap-2 items-stretch",
                 ),
