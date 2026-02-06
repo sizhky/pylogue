@@ -2473,7 +2473,7 @@ crypto = [
 
 [[package]]
 name = "pylogue"
-version = "0.3.33"
+version = "0.3.34"
 source = { editable = "." }
 dependencies = [
     { name = "authlib" },
@@ -2486,6 +2486,10 @@ dependencies = [
 [package.optional-dependencies]
 agno = [
     { name = "agno" },
+]
+all = [
+    { name = "agno" },
+    { name = "pydantic-ai" },
 ]
 dev = [
     { name = "coverage" },
@@ -2501,19 +2505,21 @@ pydantic-ai = [
 [package.metadata]
 requires-dist = [
     { name = "agno", marker = "extra == 'agno'", specifier = ">=2.4.8" },
+    { name = "agno", marker = "extra == 'all'" },
     { name = "authlib", specifier = ">=1.3.2" },
     { name = "coverage", marker = "extra == 'dev'" },
     { name = "fastsql", specifier = ">=2.1.2" },
     { name = "logfire", marker = "extra == 'pydantic-ai'", specifier = ">=4.22.0" },
     { name = "monsterui" },
     { name = "mypy", marker = "extra == 'dev'" },
+    { name = "pydantic-ai", marker = "extra == 'all'" },
     { name = "pydantic-ai", marker = "extra == 'pydantic-ai'", specifier = ">=1.56.0" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "python-fasthtml", specifier = ">=0.12.29" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "typer" },
 ]
-provides-extras = ["dev", "pydantic-ai", "agno"]
+provides-extras = ["dev", "pydantic-ai", "agno", "all"]
 
 [[package]]
 name = "pyperclip"
