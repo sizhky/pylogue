@@ -6,7 +6,7 @@ import logfire
 from dotenv import load_dotenv
 from pydantic_ai import Agent, RunContext
 
-from pylogue.core import main as create_core_app
+from pylogue.shell import app_factory
 from pylogue.integrations.pydantic_ai import PydanticAIResponder
 
 load_dotenv(override=True)
@@ -53,17 +53,15 @@ def inspect_user_context(ctx: RunContext[Any], purpose: str = "verifying user co
     }
 
 
-def app_factory():
-    return create_core_app(
+def _app_factory():
+    return app_factory(
         responder_factory=lambda: PydanticAIResponder(
             agent=agent,
             agent_deps=deps,
             show_tool_details=False,
         ),
-        tag_line="HAIKU BOT",
-        tag_line_href="/",
-        title="Haiku Assistant",
-        subtitle="Answers in 5-7-5 haikus with streaming responses.",
+        hero_title="Haiku Assistant",
+        hero_subtitle="Answers in 5-7-5 haikus with streaming responses.",
     )
 
 
@@ -71,7 +69,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "scripts.examples.ai.haiku_app:app_factory",
+        "scripts.examples.ai.pydanticai.haiku_app:_app_factory",
         host="0.0.0.0",
         port=5004,
         reload=True,

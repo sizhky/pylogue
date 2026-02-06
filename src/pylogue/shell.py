@@ -5,6 +5,7 @@ Run: python -m scripts.examples.chat_app_with_histories.main
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import inspect
 import json
 import os
 from pathlib import Path
@@ -74,7 +75,13 @@ def app_factory(
         "start a new one, or return to previous conversations instantly."
     ),
 ) -> MUFastHTML:
-    resolved_db_path = Path(db_path) if db_path is not None else DB_PATH
+    if db_path is None:
+        caller_frame = inspect.stack()[1]
+        caller_file = Path(caller_frame.filename).resolve()
+        caller_name = caller_file.stem
+        resolved_db_path = caller_file.parent / f"{caller_name}.db"
+    else:
+        resolved_db_path = Path(db_path)
     local_db = Database(f"sqlite:///{resolved_db_path}")
     if responder_factory is None:
         responder = responder or EchoResponder()
