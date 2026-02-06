@@ -5,6 +5,7 @@ from agno.models.openai import OpenAIResponses
 from loguru import logger
 from pylogue.embeds import store_html
 
+
 def render_altair_chart_py(altair_python: str):
     """Render an Altair chart using Python code that defines `chart`.
 
@@ -30,13 +31,30 @@ def render_altair_chart_py(altair_python: str):
             return "Error: Altair code must define a `chart` variable."
 
         try:
+            spec = chart.to_dict()
             html_content = chart.to_html(embed_options={"actions": False})
         except Exception as exc:  # noqa: BLE001
             return f"Error serializing chart HTML: {exc}"
 
+        width = spec.get("width")
+        height = spec.get("height")
+        view_cfg = (spec.get("config") or {}).get("view") or {}
+
+        if not isinstance(width, (int, float)):
+            width = view_cfg.get("continuousWidth")
+        if not isinstance(height, (int, float)):
+            height = view_cfg.get("continuousHeight")
+
+        if not isinstance(width, (int, float)):
+            width = 300
+        if not isinstance(height, (int, float)):
+            height = 300
+
         iframe_html = (
             f"<iframe src=\"data:text/html;base64,{base64.b64encode(html_content.encode()).decode()}\" "
-            f"frameborder=\"0\" style=\"width:100%; height:480px;\"></iframe>"
+            f'width="{int(width)}" height="{int(height)}" '
+            f'style="width:{int(width)}px; height:{int(height)}px; border:0; display:block;" '
+            f'title="Altair Chart"></iframe>'
         )
 
         html_id = store_html(iframe_html)
