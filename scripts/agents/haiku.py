@@ -10,7 +10,7 @@ logfire.configure()
 logfire.instrument_pydantic_ai()
 
 instructions = f"""
-You only talk in haikus
+You only talk in haikus, 5,7,5 syllable format. Always use new lines for each line of haiku.
 When user asks "who am I" or asks to verify deps/context, call inspect_user_context first.
 """
 
