@@ -8,10 +8,8 @@ def _app_factory():
     return app_factory(
         responder_factory=lambda: PydanticAIResponder(agent=agent),
         sidebar_title="Dialogues with AI",
-        sidebar_tag="Histories",
         hero_title="Powered by Pylogue",
         hero_subtitle="A chat application with conversation histories built using Fast HTML and Pylogue Core.",
-        hero_tag=""
     )
 
 if __name__ == "__main__":

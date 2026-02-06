@@ -68,8 +68,6 @@ def app_factory(
     responder_factory=None,
     db_path: Path | str | None = None,
     sidebar_title: str = "Pylogue",
-    sidebar_tag: str = "Multi-Chat",
-    hero_tag: str = "PYLOGUE WRAPPER",
     hero_title: str = "Fast HTML + Pylogue Core",
     hero_subtitle: str = (
         "One UI wraps multiple Pylogue chat sessions. Pick a chat on the left, "
@@ -238,7 +236,6 @@ def app_factory(
         return Div(
             Div(
                 H1(sidebar_title, cls="text-xl font-semibold"),
-                Span(sidebar_tag, cls="meta-pill"),
                 A(
                     UkIcon("sign-out"),
                     Span("Logout"),
@@ -261,7 +258,6 @@ def app_factory(
     def _hero():
         return Div(
             Div(
-                P(hero_tag, cls="meta-pill"),
                 H2(hero_title, cls="hero-title"),
                 P(hero_subtitle, cls="hero-sub"),
                 cls="space-y-2",
