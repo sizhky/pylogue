@@ -1,5 +1,6 @@
 # Agno integration for Pylogue
 import copy
+import inspect
 from typing import Any, Optional
 
 from .common import (
@@ -19,36 +20,58 @@ from .common import (
 
 
 def _normalize_tool_payload(tool_entry: Any) -> tuple[str | None, Any, Any, str | None]:
-    if not isinstance(tool_entry, dict):
-        return None, None, None, None
-    function = tool_entry.get("function")
-    if isinstance(function, dict):
-        function_name = function.get("name")
-        function_args = function.get("arguments")
-    else:
-        function_name = None
-        function_args = None
+    if isinstance(tool_entry, dict):
+        function = tool_entry.get("function")
+        if isinstance(function, dict):
+            function_name = function.get("name")
+            function_args = function.get("arguments")
+        else:
+            function_name = None
+            function_args = None
 
-    tool_name = (
-        tool_entry.get("tool_name")
-        or tool_entry.get("name")
-        or function_name
-        or tool_entry.get("tool")
-    )
-    args = (
-        tool_entry.get("tool_args")
-        or tool_entry.get("args")
-        or tool_entry.get("arguments")
-        or function_args
-        or tool_entry.get("input")
-    )
-    result = (
-        tool_entry.get("result")
-        or tool_entry.get("output")
-        or tool_entry.get("content")
-        or tool_entry.get("observation")
-    )
-    call_id = tool_entry.get("tool_call_id") or tool_entry.get("call_id") or tool_entry.get("id")
+        tool_name = (
+            tool_entry.get("tool_name")
+            or tool_entry.get("name")
+            or function_name
+            or tool_entry.get("tool")
+        )
+        args = (
+            tool_entry.get("tool_args")
+            or tool_entry.get("args")
+            or tool_entry.get("arguments")
+            or function_args
+            or tool_entry.get("input")
+        )
+        result = (
+            tool_entry.get("result")
+            or tool_entry.get("output")
+            or tool_entry.get("content")
+            or tool_entry.get("observation")
+        )
+        call_id = tool_entry.get("tool_call_id") or tool_entry.get("call_id") or tool_entry.get("id")
+    else:
+        tool_name = (
+            getattr(tool_entry, "tool_name", None)
+            or getattr(tool_entry, "name", None)
+            or getattr(tool_entry, "tool", None)
+        )
+        args = (
+            getattr(tool_entry, "tool_args", None)
+            or getattr(tool_entry, "args", None)
+            or getattr(tool_entry, "arguments", None)
+            or getattr(tool_entry, "input", None)
+        )
+        result = (
+            getattr(tool_entry, "result", None)
+            or getattr(tool_entry, "output", None)
+            or getattr(tool_entry, "content", None)
+            or getattr(tool_entry, "observation", None)
+        )
+        call_id = (
+            getattr(tool_entry, "tool_call_id", None)
+            or getattr(tool_entry, "call_id", None)
+            or getattr(tool_entry, "id", None)
+        )
     return tool_name, args, result, call_id
 
 
@@ -65,7 +88,25 @@ def _is_event(event_value, expected_name: str) -> bool:
     if event_value is None:
         return False
     event_str = str(event_value)
-    return event_str == expected_name or event_str.endswith(f".{expected_name}")
+    return event_str == expected_name or event_str.endswith(expected_name)
+
+
+def _extract_content_text(chunk: Any) -> str | None:
+    content = getattr(chunk, "content", None)
+    if content is None:
+        return None
+    if isinstance(content, str):
+        return content
+    return str(content)
+
+
+def _extract_reasoning_text(chunk: Any) -> str | None:
+    reasoning_content = getattr(chunk, "reasoning_content", None)
+    if reasoning_content is None:
+        return None
+    if isinstance(reasoning_content, str):
+        return reasoning_content
+    return str(reasoning_content)
 
 
 def _message_to_dict(message: Any) -> dict | None:
@@ -182,15 +223,26 @@ class AgnoResponder:
         self.set_context(context)
         user = self._active_user
         try:
-            run_stream = await self.agent.arun(
+            run_call_result = self.agent.arun(
                 self._build_run_input(text),
                 stream=True,
                 stream_events=True,
                 additional_context=self._compose_system_prompt(user=user),
                 **self._build_run_kwargs(),
             )
+            if inspect.isawaitable(run_call_result):
+                run_stream = await run_call_result
+            else:
+                run_stream = run_call_result
         except ModuleNotFoundError as exc:
             raise RuntimeError("Agno integration requires the `agno` package. Install it with `pip install agno`.") from exc
+        except AttributeError as exc:
+            raise RuntimeError("Configured Agno agent does not expose `arun`.") from exc
+
+        if not hasattr(run_stream, "__aiter__"):
+            raise TypeError(
+                "Agno `arun(..., stream=True, stream_events=True)` must return an async iterable."
+            )
 
         pending_tool_calls: dict[str, tuple[str | None, Any]] = {}
         tool_call_counter = 0
@@ -200,9 +252,9 @@ class AgnoResponder:
         async for chunk in run_stream:
             event = getattr(chunk, "event", None)
 
-            if _is_event(event, "RunResponse"):
-                content = getattr(chunk, "content", None)
-                if isinstance(content, str) and content:
+            if _is_event(event, "RunContent") or _is_event(event, "RunIntermediateContent") or _is_event(event, "RunResponse") or _is_event(event, "RunCompleted"):
+                content = _extract_content_text(chunk)
+                if content:
                     if content.startswith(streamed_text):
                         delta = content[len(streamed_text) :]
                         streamed_text = content
@@ -238,8 +290,12 @@ class AgnoResponder:
                         yield _format_tool_result_summary(tool_name, args, result)
                 continue
 
-            content = getattr(chunk, "content", None)
-            if isinstance(content, str) and content and _is_event(event, "Reasoning"):
+            reasoning_text = _extract_reasoning_text(chunk)
+            if reasoning_text and (_is_event(event, "ReasoningContentDelta") or _is_event(event, "Reasoning")):
+                yield reasoning_text
+
+            content = _extract_content_text(chunk)
+            if content and _is_event(event, "Reasoning"):
                 yield content
 
             messages = _normalize_history_messages(getattr(chunk, "messages", None))
