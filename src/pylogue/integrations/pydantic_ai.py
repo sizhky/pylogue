@@ -183,6 +183,21 @@ def _merge_user_into_deps(base_deps, context):
         return base_deps
 
 
+def _extract_user_from_deps(deps):
+    if isinstance(deps, dict):
+        user = deps.get("pylogue_user")
+    else:
+        user = getattr(deps, "pylogue_user", None)
+    return user if isinstance(user, dict) else None
+
+
+def _extract_user_from_context(context):
+    if not isinstance(context, dict):
+        return None
+    user = context.get("user")
+    return user if isinstance(user, dict) else None
+
+
 class PydanticAIResponder:
     """Streaming responder using Pydantic AI's run_stream_events."""
     pylogue_instructions = (
@@ -216,15 +231,18 @@ class PydanticAIResponder:
             }
             agent._pylogue_prompt_state = state
         self._prompt_state = state
+        self._base_agent_deps = agent_deps
         self.agent_deps = agent_deps
         self.message_history = None
         self.show_tool_details = show_tool_details
+        self._active_user = None
         
         # Register dynamic system prompt function once per agent
         if not getattr(agent, "_pylogue_prompt_registered", False):
             @self.agent.system_prompt
-            def custom_instructions() -> str:
-                return self._compose_system_prompt()
+            def custom_instructions(ctx) -> str:
+                user = _extract_user_from_deps(getattr(ctx, "deps", None)) or self._active_user
+                return self._compose_system_prompt(user)
 
             agent._pylogue_prompt_registered = True
 
@@ -233,11 +251,25 @@ class PydanticAIResponder:
         if additional_instructions:
             self._prompt_state["additional"].append(additional_instructions)
 
-    def _compose_system_prompt(self) -> str:
+    def _compose_system_prompt(self, user: Optional[dict] = None) -> str:
         segments = []
         if self._prompt_state.get("base_prompt"):
             segments.append(self._prompt_state["base_prompt"])
         segments.append(self.pylogue_instructions)
+        if isinstance(user, dict):
+            display_name = user.get("display_name") or user.get("name")
+            email = user.get("email")
+            user_parts = []
+            if display_name:
+                user_parts.append(f"name={display_name}")
+            if email:
+                user_parts.append(f"email={email}")
+            if user_parts:
+                segments.append(
+                    "Authenticated user profile (source of truth): "
+                    + ", ".join(user_parts)
+                    + ". Use this identity when the user asks who they are or asks for personalization."
+                )
         if self._prompt_state["additional"]:
             segments.extend(self._prompt_state["additional"])
         return "\n\n".join(segments)
@@ -264,14 +296,15 @@ class PydanticAIResponder:
         elif isinstance(meta.get("system_prompt"), str):
             self._prompt_state["additional"] = [meta["system_prompt"]]
 
-    def load_history(self, cards) -> None:
+    def load_history(self, cards, context=None) -> None:
         """Load conversation history from Pylogue cards."""
         try:
             from pydantic_ai import messages as pai_messages
         except Exception:
             return
         history = []
-        system_prompt = self._compose_system_prompt()
+        user = _extract_user_from_context(context)
+        system_prompt = self._compose_system_prompt(user=user)
         if system_prompt:
             history.append(
                 pai_messages.ModelRequest(
@@ -298,6 +331,11 @@ class PydanticAIResponder:
                     )
                 )
         self.message_history = history
+
+    def set_context(self, context=None) -> None:
+        user = _extract_user_from_context(context)
+        self._active_user = user
+        self.agent_deps = _merge_user_into_deps(self._base_agent_deps, {"user": user} if user else None)
     
     async def __call__(self, text: str, context=None):
         from pydantic_ai import messages
@@ -306,12 +344,13 @@ class PydanticAIResponder:
         pending_tool_calls = {}
         tool_call_counter = 0
 
-        run_deps = _merge_user_into_deps(self.agent_deps, context)
+        # Keep deps up to date for this request context.
+        self.set_context(context)
 
         async for event in self.agent.run_stream_events(
             text,
             message_history=self.message_history,
-            deps=run_deps,
+            deps=self.agent_deps,
         ):
             kind = getattr(event, "event_kind", "")
 

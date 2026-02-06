@@ -65,6 +65,7 @@ def _utc_iso() -> str:
 
 def app_factory(
     responder=None,
+    responder_factory=None,
     db_path: Path | str | None = None,
     sidebar_title: str = "Pylogue",
     sidebar_tag: str = "Multi-Chat",
@@ -77,7 +78,8 @@ def app_factory(
 ) -> MUFastHTML:
     resolved_db_path = Path(db_path) if db_path is not None else DB_PATH
     local_db = Database(f"sqlite:///{resolved_db_path}")
-    responder = responder or EchoResponder()
+    if responder_factory is None:
+        responder = responder or EchoResponder()
     headers = list(get_core_headers(include_markdown=True))
     headers.extend(
         [
@@ -222,13 +224,27 @@ def app_factory(
         return JSONResponse({"deleted": True})
 
     sessions: dict[int, dict] = {}
-    register_ws_routes(app, responder=responder, sessions=sessions, auth_required=auth_required)
+    register_ws_routes(
+        app,
+        responder=responder,
+        responder_factory=responder_factory,
+        sessions=sessions,
+        auth_required=auth_required,
+    )
 
-    def _sidebar():
+    def _sidebar(request: Request):
+        show_logout = auth_required and _is_authorized(request)
+        logout_href = auth_paths["logout_path"] if auth_paths else "/logout"
         return Div(
             Div(
                 H1(sidebar_title, cls="text-xl font-semibold"),
                 Span(sidebar_tag, cls="meta-pill"),
+                A(
+                    UkIcon("sign-out"),
+                    Span("Logout"),
+                    href=logout_href,
+                    cls=(ButtonT.secondary, "text-xs"),
+                ) if show_logout else None,
                 cls="sidebar-header",
             ),
             Button(
@@ -304,9 +320,9 @@ def app_factory(
             cls="main-panel space-y-6",
         )
 
-    def _shell():
+    def _shell(request: Request):
         return Div(
-            _sidebar(),
+            _sidebar(request),
             _main_panel(),
             cls="app-shell",
         )
@@ -321,7 +337,7 @@ def app_factory(
             Title(hero_title),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             Body(
-                _shell(),
+                _shell(request),
                 cls="min-h-screen",
                 data_import_prefix=IMPORT_PREFIX,
             ),

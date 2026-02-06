@@ -87,9 +87,12 @@ def _connection_auth(conn):
     if not isinstance(scope, dict):
         return None
     session = scope.get("session")
-    if not isinstance(session, dict):
+    if session is None:
         return None
-    auth = session.get("auth")
+    try:
+        auth = session.get("auth")
+    except Exception:
+        auth = None
     if isinstance(auth, dict):
         return auth
     return None
@@ -451,12 +454,19 @@ def register_ws_routes(
     def _on_connect(ws, send):
         if auth_required and not _connection_auth(ws):
             return
+        session_context = _build_responder_context(ws)
+        session_responder = responder_factory() if responder_factory else responder
+        if hasattr(session_responder, "set_context"):
+            try:
+                session_responder.set_context(session_context)
+            except Exception:
+                pass
         ws_id = id(ws)
         sessions[ws_id] = {
             "cards": [],
-            "responder": responder_factory() if responder_factory else responder,
+            "responder": session_responder,
             "task": None,
-            "context": _build_responder_context(ws),
+            "context": session_context,
         }
 
     def _on_disconnect(ws):
@@ -474,11 +484,18 @@ def register_ws_routes(
         ws_id = id(ws)
         session = sessions.get(ws_id)
         if session is None:
+            session_context = _build_responder_context(ws)
+            session_responder = responder_factory() if responder_factory else responder
+            if hasattr(session_responder, "set_context"):
+                try:
+                    session_responder.set_context(session_context)
+                except Exception:
+                    pass
             session = {
                 "cards": [],
-                "responder": responder_factory() if responder_factory else responder,
+                "responder": session_responder,
                 "task": None,
-                "context": _build_responder_context(ws),
+                "context": session_context,
             }
             sessions[ws_id] = session
         cards = session["cards"]
@@ -487,6 +504,11 @@ def register_ws_routes(
         context = _build_responder_context(ws)
         if context is not None:
             session["context"] = context
+            if hasattr(session_responder, "set_context"):
+                try:
+                    session_responder.set_context(context)
+                except Exception:
+                    pass
 
         async def _run_message(prompt: str):
             cards.append({"id": str(len(cards)), "question": prompt, "answer": ""})
@@ -576,7 +598,7 @@ def register_ws_routes(
                     pass
             if hasattr(session_responder, "load_history"):
                 try:
-                    session_responder.load_history(normalized)
+                    session_responder.load_history(normalized, context=session.get("context"))
                 except Exception:
                     pass
             await send(render_cards(normalized))
