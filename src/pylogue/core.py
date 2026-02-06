@@ -103,6 +103,10 @@ def _oauth_base_url(request: Request) -> str:
     return base.replace("://0.0.0.0", "://localhost")
 
 
+def _session_cookie_name() -> str:
+    return os.getenv("PYLOGUE_SESSION_COOKIE", "pylogue_session")
+
+
 def _register_google_auth_routes(app, cfg: GoogleOAuthConfig, base_path: str = "") -> dict[str, str]:
     try:
         from authlib.integrations.starlette_client import OAuth
@@ -698,6 +702,7 @@ def main(
         else os.getenv("PYLOGUE_SESSION_SECRET")
     )
     app_kwargs = {"exts": "ws", "hdrs": tuple(headers), "pico": False}
+    app_kwargs["session_cookie"] = _session_cookie_name()
     if session_secret:
         app_kwargs["secret_key"] = session_secret
     app = MUFastHTML(**app_kwargs)
