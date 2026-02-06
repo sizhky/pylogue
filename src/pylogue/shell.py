@@ -37,7 +37,10 @@ from starlette.requests import Request
 from starlette.responses import FileResponse
 from starlette.responses import JSONResponse
 
-DB_PATH = Path(__file__).resolve().parent / "chat_app.db"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CHAT_APP_DIR = PROJECT_ROOT / "scripts" / "examples" / "chat_app_with_histories"
+STATIC_DIR = CHAT_APP_DIR / "static"
+DB_PATH = CHAT_APP_DIR / "chat_app.db"
 db = Database(f"sqlite:///{DB_PATH}")
 
 
@@ -86,15 +89,13 @@ def app_factory(
 
     app = MUFastHTML(exts="ws", hdrs=tuple(headers), pico=False)
     register_core_static(app)
-    app_static_dir = Path(__file__).resolve().parent / "static"
-
     @app.route("/static/chat_app.css")
     def _chat_app_css():
-        return FileResponse(app_static_dir / "chat_app.css")
+        return FileResponse(STATIC_DIR / "chat_app.css")
 
     @app.route("/static/chat_app.js")
     def _chat_app_js():
-        return FileResponse(app_static_dir / "chat_app.js")
+        return FileResponse(STATIC_DIR / "chat_app.js")
 
     @app.route("/api/chats", methods=["GET"])
     def list_chats():
