@@ -254,6 +254,16 @@ html {
   color: #0f172a;
 }
 
+.marked .mermaid-error {
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+
 .marked ul,
 .marked ol {
   margin: 12px 0;

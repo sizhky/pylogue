@@ -95,5 +95,5 @@ In the chat app with histories, the flow is:
 **Where to Look in This Repo**
 - Core runtime: `src/pylogue/core.py`
 - Pydantic AI responder: `src/pylogue/integrations/pydantic_ai.py`
-- Multi-history app: `scripts/examples/chat_app_with_histories/factory.py`
+- Multi-history app: `src/pylogue/shell.py`
 - JS UI logic: `scripts/examples/chat_app_with_histories/static/chat_app.js`

@@ -15,7 +15,7 @@ flowchart TD
   subgraph APP["Application Layer<br>FastHTML Shell + UI"]
     A["Browser<br>Chat UI"]:::client
     B["chat_app.js<br>State + UI logic"]:::client
-    C["FastHTML App<br>chat_app_with_histories/factory.py"]:::server
+    C["FastHTML App<br>src/pylogue/shell.py"]:::server
   end
 
   subgraph USER["User Layer<br>Your Agent + Responder"]

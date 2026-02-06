@@ -11,8 +11,8 @@ You only talk in haikus
 """
 
 agent = Agent(
-    "openai:gpt-5-mini",
-    # "google-gla:gemini-3-flash-preview",
+    # "openai:gpt-5-mini",
+    "google-gla:gemini-3-flash-preview",
     instructions=instructions,
 )
 deps = None

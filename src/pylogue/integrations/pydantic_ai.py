@@ -1,4 +1,6 @@
 # Pydantic AI integration for Pylogue
+import asyncio
+import copy
 import html
 import json
 import re
@@ -14,6 +16,186 @@ def _sanitize_history_answer(answer: str) -> str:
     text = _TOOL_HTML_RE.sub("Rendered tool output.", answer)
     text = _TAG_RE.sub("", text)
     return html.unescape(text).strip()
+
+
+def _safe_json(value):
+    if value is None:
+        return "{}"
+    if isinstance(value, str):
+        try:
+            return json.dumps(json.loads(value), indent=2, sort_keys=True, ensure_ascii=True)
+        except json.JSONDecodeError:
+            return value
+    try:
+        return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True)
+    except TypeError:
+        return json.dumps(str(value), indent=2, sort_keys=True, ensure_ascii=True)
+
+
+def _truncate(text: str, limit: int = 100) -> str:
+    if not isinstance(text, str):
+        return ""
+    return text if len(text) <= limit else f"{text[:limit//2]} ... (truncated) ... {text[-limit//2:]}"
+
+
+def _get_tool_call_id(part):
+    return getattr(part, "tool_call_id", None) or getattr(part, "call_id", None)
+
+
+def _unwrap_tool_return(part_or_result, messages_module):
+    if isinstance(part_or_result, messages_module.BaseToolReturnPart):
+        return (
+            part_or_result.tool_name,
+            part_or_result.content,
+            part_or_result.tool_call_id,
+        )
+    return None
+
+
+def _extract_tool_result(event, messages_module):
+    part = getattr(event, "part", None)
+    if part is not None:
+        tool_name = getattr(part, "tool_name", None) or getattr(part, "name", None)
+        result = (
+            getattr(part, "content", None)
+            or getattr(part, "result", None)
+            or getattr(part, "return_value", None)
+            or getattr(part, "value", None)
+        )
+        call_id = _get_tool_call_id(part)
+        return tool_name, result, call_id
+    result = getattr(event, "result", None)
+    tool_name = getattr(event, "tool_name", None)
+    call_id = getattr(event, "tool_call_id", None) or getattr(event, "call_id", None)
+    unwrapped = _unwrap_tool_return(result, messages_module)
+    if unwrapped is not None:
+        tool_name = tool_name or unwrapped[0]
+        result = unwrapped[1]
+        call_id = call_id or unwrapped[2]
+    return tool_name, result, call_id
+
+
+def _format_tool_result_summary(tool_name: str, args, result):
+    tool_label = html.escape(tool_name or "tool")
+    safe_args = html.escape(_safe_json(args))
+    safe_result = html.escape(_truncate(_safe_json(result)))
+    return (
+        "\n\n"
+        f'<details class="tool-call"><summary>Tool: {tool_label}</summary>'
+        f"<div><strong>Args</strong></div>"
+        f"<pre><code>{safe_args}</code></pre>"
+        f"<div><strong>Result</strong></div>"
+        f"<pre><code>{safe_result}</code></pre></details>\n\n"
+    )
+
+
+def _safe_dom_id(value: str | None) -> str:
+    if not value:
+        return "tool-status"
+    safe = []
+    for ch in str(value):
+        if ch.isalnum() or ch in {"-", "_"}:
+            safe.append(ch)
+    return "".join(safe) or "tool-status"
+
+
+def _format_tool_status_running(tool_name: str, args, call_id: str | None):
+    purpose = None
+    if isinstance(args, dict):
+        purpose = args.get("purpose")
+    label = purpose or (tool_name.replace("_", " ").title() if tool_name else "Working")
+    status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
+    safe_label = html.escape(str(label))
+    return (
+        f'<div id="{status_id}" class="tool-status tool-status--running">{safe_label}</div><br />\n\n'
+    )
+
+
+def _format_tool_status_done(args, call_id: str | None):
+    if isinstance(args, dict):
+        purpose = args.get("purpose")
+        if isinstance(purpose, str) and purpose.strip():
+            safe_label = purpose.strip()
+        else:
+            safe_label = "Completed"
+    else:
+        safe_label = "Completed"
+    status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
+    safe_label_escaped = html.escape(safe_label)
+    return (
+        f'<div class="tool-status-update" data-target-id="{status_id}">'
+        f"{safe_label_escaped}</div><br />\n\n"
+    )
+
+
+def _resolve_tool_html(result):
+    if isinstance(result, dict) and "_pylogue_html_id" in result:
+        token = result.get("_pylogue_html_id")
+        try:
+            from pylogue.embeds import take_html
+        except Exception:
+            return None
+        return take_html(token)
+    return None
+
+
+def _should_render_tool_result_raw(tool_name: str | None, result) -> bool:
+    if not isinstance(result, str):
+        return False
+    stripped = result.lstrip()
+    if not stripped.startswith("<"):
+        return False
+    # Allow raw HTML for tool results (e.g., chart renderers).
+    return True
+
+
+def _wrap_tool_html(result: str) -> str:
+    stripped = result.strip()
+    if stripped.startswith("<div") and stripped.endswith("</div>"):
+        return result
+    return f'<div class="tool-html">{result}</div>'
+
+
+def _merge_user_into_deps(base_deps, context):
+    user = context.get("user") if isinstance(context, dict) else None
+    if not isinstance(user, dict):
+        return base_deps
+
+    # No baseline deps configured: pass a lightweight mapping as deps.
+    if base_deps is None:
+        return {"pylogue_user": user}
+
+    # Common case for dict-based deps.
+    if isinstance(base_deps, dict):
+        merged = dict(base_deps)
+        merged["pylogue_user"] = user
+        return merged
+
+    # Try to preserve existing deps type while attaching user context.
+    try:
+        merged = copy.copy(base_deps)
+    except Exception:
+        merged = base_deps
+    try:
+        setattr(merged, "pylogue_user", user)
+        return merged
+    except Exception:
+        return base_deps
+
+
+def _extract_user_from_deps(deps):
+    if isinstance(deps, dict):
+        user = deps.get("pylogue_user")
+    else:
+        user = getattr(deps, "pylogue_user", None)
+    return user if isinstance(user, dict) else None
+
+
+def _extract_user_from_context(context):
+    if not isinstance(context, dict):
+        return None
+    user = context.get("user")
+    return user if isinstance(user, dict) else None
 
 
 class PydanticAIResponder:
@@ -49,15 +231,18 @@ class PydanticAIResponder:
             }
             agent._pylogue_prompt_state = state
         self._prompt_state = state
+        self._base_agent_deps = agent_deps
         self.agent_deps = agent_deps
         self.message_history = None
         self.show_tool_details = show_tool_details
+        self._active_user = None
         
         # Register dynamic system prompt function once per agent
         if not getattr(agent, "_pylogue_prompt_registered", False):
             @self.agent.system_prompt
-            def custom_instructions() -> str:
-                return self._compose_system_prompt()
+            def custom_instructions(ctx) -> str:
+                user = _extract_user_from_deps(getattr(ctx, "deps", None)) or self._active_user
+                return self._compose_system_prompt(user)
 
             agent._pylogue_prompt_registered = True
 
@@ -66,11 +251,25 @@ class PydanticAIResponder:
         if additional_instructions:
             self._prompt_state["additional"].append(additional_instructions)
 
-    def _compose_system_prompt(self) -> str:
+    def _compose_system_prompt(self, user: Optional[dict] = None) -> str:
         segments = []
         if self._prompt_state.get("base_prompt"):
             segments.append(self._prompt_state["base_prompt"])
         segments.append(self.pylogue_instructions)
+        if isinstance(user, dict):
+            display_name = user.get("display_name") or user.get("name")
+            email = user.get("email")
+            user_parts = []
+            if display_name:
+                user_parts.append(f"name={display_name}")
+            if email:
+                user_parts.append(f"email={email}")
+            if user_parts:
+                segments.append(
+                    "Authenticated user profile (source of truth): "
+                    + ", ".join(user_parts)
+                    + ". Use this identity when the user asks who they are or asks for personalization."
+                )
         if self._prompt_state["additional"]:
             segments.extend(self._prompt_state["additional"])
         return "\n\n".join(segments)
@@ -97,14 +296,15 @@ class PydanticAIResponder:
         elif isinstance(meta.get("system_prompt"), str):
             self._prompt_state["additional"] = [meta["system_prompt"]]
 
-    def load_history(self, cards) -> None:
+    def load_history(self, cards, context=None) -> None:
         """Load conversation history from Pylogue cards."""
         try:
             from pydantic_ai import messages as pai_messages
         except Exception:
             return
         history = []
-        system_prompt = self._compose_system_prompt()
+        user = _extract_user_from_context(context)
+        system_prompt = self._compose_system_prompt(user=user)
         if system_prompt:
             history.append(
                 pai_messages.ModelRequest(
@@ -131,155 +331,21 @@ class PydanticAIResponder:
                     )
                 )
         self.message_history = history
+
+    def set_context(self, context=None) -> None:
+        user = _extract_user_from_context(context)
+        self._active_user = user
+        self.agent_deps = _merge_user_into_deps(self._base_agent_deps, {"user": user} if user else None)
     
     async def __call__(self, text: str, context=None):
-        import asyncio
         from pydantic_ai import messages
         from pydantic_ai.run import AgentRunResultEvent
 
         pending_tool_calls = {}
         tool_call_counter = 0
 
-        def _safe_json(value):
-            if value is None:
-                return "{}"
-            if isinstance(value, str):
-                try:
-                    return json.dumps(json.loads(value), indent=2, sort_keys=True, ensure_ascii=True)
-                except json.JSONDecodeError:
-                    return value
-            try:
-                return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True)
-            except TypeError:
-                return json.dumps(str(value), indent=2, sort_keys=True, ensure_ascii=True)
-
-        def _truncate(text: str, limit: int = 100) -> str:
-            if not isinstance(text, str):
-                return ""
-            return text if len(text) <= limit else f"{text[:limit//2]} ... (truncated) ... {text[-limit//2:]}"
-
-        def _get_tool_call_id(part):
-            return getattr(part, "tool_call_id", None) or getattr(part, "call_id", None)
-
-        def _unwrap_tool_return(part_or_result):
-            if isinstance(part_or_result, messages.BaseToolReturnPart):
-                return (
-                    part_or_result.tool_name,
-                    part_or_result.content,
-                    part_or_result.tool_call_id,
-                )
-            return None
-
-        def _extract_tool_result(event):
-            part = getattr(event, "part", None)
-            if part is not None:
-                tool_name = getattr(part, "tool_name", None) or getattr(part, "name", None)
-                result = (
-                    getattr(part, "content", None)
-                    or getattr(part, "result", None)
-                    or getattr(part, "return_value", None)
-                    or getattr(part, "value", None)
-                )
-                call_id = _get_tool_call_id(part)
-                return tool_name, result, call_id
-            result = getattr(event, "result", None)
-            tool_name = getattr(event, "tool_name", None)
-            call_id = getattr(event, "tool_call_id", None) or getattr(event, "call_id", None)
-            unwrapped = _unwrap_tool_return(result)
-            if unwrapped is not None:
-                tool_name = tool_name or unwrapped[0]
-                result = unwrapped[1]
-                call_id = call_id or unwrapped[2]
-            return tool_name, result, call_id
-
-        def _format_tool_result_summary(tool_name: str, args, result):
-            tool_label = html.escape(tool_name or "tool")
-            safe_args = html.escape(_safe_json(args))
-            safe_result = html.escape(_truncate(_safe_json(result)))
-            return (
-                "\n\n"
-                f'<details class="tool-call"><summary>Tool: {tool_label}</summary>'
-                f"<div><strong>Args</strong></div>"
-                f"<pre><code>{safe_args}</code></pre>"
-                f"<div><strong>Result</strong></div>"
-                f"<pre><code>{safe_result}</code></pre></details>\n\n"
-            )
-
-        def _safe_dom_id(value: str | None) -> str:
-            if not value:
-                return "tool-status"
-            safe = []
-            for ch in str(value):
-                if ch.isalnum() or ch in {"-", "_"}:
-                    safe.append(ch)
-            return "".join(safe) or "tool-status"
-
-        def _format_tool_status_running(tool_name: str, args, call_id: str | None):
-            purpose = None
-            if isinstance(args, dict):
-                purpose = args.get("purpose")
-            label = purpose or (tool_name.replace("_", " ").title() if tool_name else "Working")
-            status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
-            safe_label = html.escape(str(label))
-            return (
-                f'<div id="{status_id}" class="tool-status tool-status--running">{safe_label}</div><br />\n\n'
-            )
-
-        def _format_tool_status_done(args, call_id: str | None):
-            if isinstance(args, dict):
-                purpose = args.get("purpose")
-                if isinstance(purpose, str) and purpose.strip():
-                    safe_label = purpose.strip()
-                else:
-                    safe_label = "Completed"
-            else:
-                safe_label = "Completed"
-            status_id = _safe_dom_id(f"tool-status-{call_id or ''}")
-            safe_label_escaped = html.escape(safe_label)
-            return (
-                f'<div class="tool-status-update" data-target-id="{status_id}">'
-                f'{safe_label_escaped}</div><br />\n\n'
-            )
-
-        def _format_tool_result_brief(tool_name: str, args, result):
-            if isinstance(args, dict):
-                purpose = args.get("purpose")
-                if isinstance(purpose, str) and purpose.strip():
-                    return f"{purpose.strip()}\n\n"
-            if isinstance(result, dict):
-                message = result.get("message") or result.get("summary")
-                if message:
-                    return f"{message}\n\n"
-            if isinstance(result, str) and result.strip():
-                return f"{result}\n\n"
-            if tool_name:
-                return f"{tool_name.replace('_', ' ').title()} completed.\n\n"
-            return "Tool completed.\n\n"
-
-        def _resolve_tool_html(result):
-            if isinstance(result, dict) and "_pylogue_html_id" in result:
-                token = result.get("_pylogue_html_id")
-                try:
-                    from pylogue.embeds import take_html
-                except Exception:
-                    return None
-                return take_html(token)
-            return None
-
-        def _should_render_tool_result_raw(tool_name: str | None, result) -> bool:
-            if not isinstance(result, str):
-                return False
-            stripped = result.lstrip()
-            if not stripped.startswith("<"):
-                return False
-            # Allow raw HTML for tool results (e.g., chart renderers).
-            return True
-
-        def _wrap_tool_html(result: str) -> str:
-            stripped = result.strip()
-            if stripped.startswith("<div") and stripped.endswith("</div>"):
-                return result
-            return f'<div class="tool-html">{result}</div>'
+        # Keep deps up to date for this request context.
+        self.set_context(context)
 
         async for event in self.agent.run_stream_events(
             text,
@@ -326,7 +392,7 @@ class PydanticAIResponder:
                 "builtin_tool_return",
                 "tool_return",
             }:
-                tool_name, result, call_id = _extract_tool_result(event)
+                tool_name, result, call_id = _extract_tool_result(event, messages)
                 if call_id in pending_tool_calls:
                     tool_name, args = pending_tool_calls.pop(call_id)
                 else:
