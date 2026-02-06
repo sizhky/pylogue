@@ -71,6 +71,34 @@ python -m scripts.examples.chat_app_with_histories.main
 - **Flow diagram**: `docs/architecture.md`
 - **Integration manual**: `docs/pylogue_integration_manual.md`
 
+## Google Login (OAuth)
+Pylogue now supports opt-in Google login, modeled after the flow used in Vyasa.
+
+Set environment variables:
+```bash
+export PYLOGUE_GOOGLE_CLIENT_ID="your-google-client-id"
+export PYLOGUE_GOOGLE_CLIENT_SECRET="your-google-client-secret"
+export PYLOGUE_SESSION_SECRET="a-long-random-secret"
+```
+
+Optional allow-lists:
+```bash
+export PYLOGUE_GOOGLE_ALLOWED_DOMAINS="yourcompany.com"
+export PYLOGUE_GOOGLE_ALLOWED_EMAILS="alice@yourcompany.com,bob@yourcompany.com"
+```
+
+Optional auth toggle:
+```bash
+# defaults to true when Google OAuth is configured
+export PYLOGUE_AUTH_REQUIRED="true"
+```
+
+When enabled, Pylogue registers:
+- `/login`
+- `/login/google`
+- `/auth/google/callback`
+- `/logout`
+
 ## How Streaming Works (Short Version)
 - Browser connects to `/ws`.
 - Core (`register_ws_routes`) streams chunks as they arrive.

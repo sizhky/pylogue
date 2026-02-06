@@ -384,7 +384,10 @@
 
                 const ensureMermaid = () => {
                     if (mermaidReady) return;
-                    mermaid.initialize({ startOnLoad: false });
+                    mermaid.initialize({
+                        startOnLoad: false,
+                        suppressErrorRendering: true,
+                    });
                     mermaidReady = true;
                 };
 
@@ -597,6 +600,7 @@
                         wrapper.dataset.mermaidError = 'false';
                         scheduleMermaidInteraction(wrapper);
                     } catch (err) {
+                        wrapper.innerHTML = '<div class="mermaid-error">Invalid Mermaid diagram</div>';
                         wrapper.dataset.mermaidError = 'true';
                         console.warn('[mermaid] render failed', err);
                     } finally {
