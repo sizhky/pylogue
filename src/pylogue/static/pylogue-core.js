@@ -38,6 +38,9 @@
             document.addEventListener('click', async (event) => {
               const btn = event.target.closest('.copy-chat-btn');
               if (!btn) return;
+              if (event.defaultPrevented) return;
+              if (document.body?.dataset?.disableCoreDownload === 'true') return;
+              console.log('[pylogue-core] download handler fired');
               const exportInput = document.getElementById('chat-export');
               const input = exportInput || document.getElementById('chat-data');
               if (!input) return;

@@ -1,4 +1,7 @@
 const IMPORT_PREFIX = document.body?.dataset.importPrefix || '__PYLOGUE_IMPORT__:';
+if (document.body) {
+  document.body.dataset.disableCoreDownload = 'true';
+}
 let chatIndex = [];
 
 const TRASH_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -273,8 +276,9 @@ document.addEventListener('click', (event) => {
   const btn = event.target.closest('.copy-chat-btn');
   if (!btn) return;
   if (btn.classList.contains('upload-chat-btn')) return;
+  console.log('[chat_app] download override handler fired');
   event.preventDefault();
-  event.stopPropagation();
+  event.stopImmediatePropagation();
   const exportInput = document.getElementById('chat-export');
   const input = exportInput || document.getElementById('chat-data');
   if (!input) return;
