@@ -38,10 +38,15 @@ pydantic-ai = [
 ]
 agno = [
     "agno>=2.4.8",
+    "openinference-instrumentation-agno>=0.1.12",
+    "opentelemetry-exporter-otlp>=1.31.0",
 ]
 all = [
   "pydantic-ai",
   "agno",
+]
+dashboard = [
+    "altair>=6.0.0",
 ]
 
 

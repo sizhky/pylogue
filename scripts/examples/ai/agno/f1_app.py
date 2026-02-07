@@ -1,13 +1,17 @@
 # fasthtml solveit
 from dotenv import load_dotenv
 from pylogue.shell import app_factory
-from pylogue.integrations.agno import AgnoResponder
+from pylogue.integrations.agno import AgnoResponder, logfire_instrument_agno
+from pylogue.dashboarding import render_altair_chart_py
 import sys
 sys.path.append("/Users/yeshwanth/Code/Personal/agno/cookbook/01_showcase/01_agents/text_to_sql")
 
 load_dotenv(override=True)
+logfire_instrument_agno()
 
 from agent import sql_agent
+
+sql_agent.set_tools([render_altair_chart_py])
 
 def _app_factory():
     return app_factory(
