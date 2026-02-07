@@ -1,6 +1,7 @@
 # Agno integration for Pylogue
 import copy
 import inspect
+import os
 from typing import Any, Optional
 
 from .common import (
@@ -17,6 +18,55 @@ from .common import (
     should_render_tool_result_raw as _should_render_tool_result_raw,
     wrap_tool_html as _wrap_tool_html,
 )
+
+
+def logfire_instrument_agno(
+    *,
+    write_token: str | None = None,
+    endpoint: str = "https://logfire-us.pydantic.dev",
+    service_name: str = "pylogue-agno",
+    use_batch_processor: bool = True,
+):
+    """Instrument Agno with OpenTelemetry and export spans to Logfire via OTLP."""
+    resolved_write_token = write_token or os.getenv("LOGFIRE_TOKEN") or os.getenv("LOGFIRE_WRITE_TOKEN")
+    if not resolved_write_token:
+        raise ValueError(
+            "Missing Logfire write token. Set LOGFIRE_TOKEN (or LOGFIRE_WRITE_TOKEN) or pass write_token=..."
+        )
+
+    try:
+        from openinference.instrumentation.agno import AgnoInstrumentor
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "Agno Logfire instrumentation requires `openinference-instrumentation-agno`."
+        ) from exc
+
+    try:
+        from opentelemetry import trace as trace_api
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "Agno Logfire instrumentation requires OpenTelemetry SDK packages."
+        ) from exc
+
+    resolved_endpoint = endpoint.rstrip("/")
+    resource = Resource.create({"service.name": service_name}) if service_name else None
+    tracer_provider = TracerProvider(resource=resource)
+    span_processor_cls = BatchSpanProcessor if use_batch_processor else SimpleSpanProcessor
+    tracer_provider.add_span_processor(
+        span_processor_cls(
+            OTLPSpanExporter(
+                endpoint=f"{resolved_endpoint}/v1/traces",
+                headers={"Authorization": resolved_write_token},
+            )
+        )
+    )
+    trace_api.set_tracer_provider(tracer_provider)
+    AgnoInstrumentor().instrument()
+    return tracer_provider
 
 
 def _normalize_tool_payload(tool_entry: Any) -> tuple[str | None, Any, Any, str | None]:
@@ -294,6 +344,8 @@ class AgnoResponder:
                     resolved_call_id = call_id
                     if resolved_call_id in pending_tool_calls:
                         tool_name, args = pending_tool_calls.pop(resolved_call_id)
+                    if self.show_tool_details and (tool_name or args or result):
+                        yield _format_tool_result_summary(tool_name, args, result)
                     if not self.show_tool_details:
                         yield _format_tool_status_done(args, resolved_call_id)
                     resolved_html = _resolve_tool_html(result)
@@ -301,8 +353,6 @@ class AgnoResponder:
                         yield _wrap_tool_html(resolved_html)
                     elif _should_render_tool_result_raw(tool_name, result):
                         yield _wrap_tool_html(result)
-                    elif self.show_tool_details and (tool_name or args or result):
-                        yield _format_tool_result_summary(tool_name, args, result)
                 continue
 
             reasoning_text = _extract_reasoning_text(chunk)
