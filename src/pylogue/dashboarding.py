@@ -4,7 +4,7 @@ from pylogue.embeds import store_html
 import html as html_lib
 from loguru import logger
 
-def render_altair_chart_py(sql_query: str, altair_python: str):
+def render_altair_chart_py(sql_query_runner: callable, sql_query: str, altair_python: str):
     """Render an Altair chart using Python code that defines `chart`.
 
     Always provided tooltips for interactivity in the chart.
@@ -14,8 +14,10 @@ def render_altair_chart_py(sql_query: str, altair_python: str):
     """
 
     try:
-        df = pd.DataFrame(sql_tool.run_sql(sql_query))
-        local_scope = {"alt": alt, "pd": pd, "df": df}
+        local_scope = {"alt": alt, "pd": pd}
+        if sql_query_runner is not None and sql_query is not None:
+            df = pd.DataFrame(sql_query_runner(sql_query))
+            local_scope["df"] = df
         try:
             exec(altair_python, local_scope)
         except Exception as exc:  # noqa: BLE001
