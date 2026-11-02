@@ -586,31 +586,59 @@ def register_ws_routes(
     base_path: str = "",
     sessions: dict | None = None,
     auth_required: bool = False,
+    context_fn=None,
+    render_cards_fn=None,
+    render_update_fn=None,
 ):
+    """Register the chat WebSocket at `{base_path}/ws`.
+
+    Optional hooks, for apps that bring their own sign-in and look:
+    - `context_fn(ws)` returns the responder context (default: built from `session["auth"]`).
+      With `auth_required`, a `None` context means the socket is not signed in.
+    - A responder with `initial_cards()` seeds each new connection with saved cards.
+    - `render_cards_fn(cards)` and `render_update_fn(card)` replace `render_cards` and
+      `render_assistant_update`; they must keep the ids `cards`, `chat-data`, `chat-export`
+      and `assistant-<card id>`.
+    """
     if responder_factory is None:
         responder = responder or EchoResponder()
     base_path = _normalize_base_path(base_path)
     ws_path = f"{base_path}/ws" if base_path else "/ws"
     if sessions is None:
         sessions = {}
+    get_context = context_fn or _build_responder_context
+    draw_cards = render_cards_fn or render_cards
+    draw_update = render_update_fn or render_assistant_update
 
-    def _on_connect(ws, send):
-        if auth_required and not _connection_auth(ws):
-            return
-        session_context = _build_responder_context(ws)
+    def _allowed(ws):
+        if not auth_required:
+            return True
+        return get_context(ws) is not None if context_fn else bool(_connection_auth(ws))
+
+    def _new_session(ws):
+        session_context = get_context(ws)
         session_responder = responder_factory() if responder_factory else responder
         if hasattr(session_responder, "set_context"):
             try:
                 session_responder.set_context(session_context)
             except Exception:
                 pass
-        ws_id = id(ws)
-        sessions[ws_id] = {
-            "cards": [],
+        cards = []
+        if hasattr(session_responder, "initial_cards"):
+            cards = [dict(card) for card in (session_responder.initial_cards() or [])]
+        session = {
+            "cards": cards,
             "responder": session_responder,
             "task": None,
             "context": session_context,
         }
+        sessions[id(ws)] = session
+        return session
+
+    def _on_connect(ws, send):
+        if not _allowed(ws):
+            return
+        _new_session(ws)
 
     def _on_disconnect(ws):
         session = sessions.pop(id(ws), None)
@@ -622,29 +650,13 @@ def register_ws_routes(
 
     @app.ws(ws_path, conn=_on_connect, disconn=_on_disconnect)
     async def ws_handler(msg: str, send, ws):
-        if auth_required and not _connection_auth(ws):
+        if not _allowed(ws):
             return
-        ws_id = id(ws)
-        session = sessions.get(ws_id)
-        if session is None:
-            session_context = _build_responder_context(ws)
-            session_responder = responder_factory() if responder_factory else responder
-            if hasattr(session_responder, "set_context"):
-                try:
-                    session_responder.set_context(session_context)
-                except Exception:
-                    pass
-            session = {
-                "cards": [],
-                "responder": session_responder,
-                "task": None,
-                "context": session_context,
-            }
-            sessions[ws_id] = session
+        session = sessions.get(id(ws)) or _new_session(ws)
         cards = session["cards"]
         session_responder = session["responder"]
         current_task = session.get("task")
-        context = _build_responder_context(ws)
+        context = get_context(ws)
         if context is not None:
             session["context"] = context
             if hasattr(session_responder, "set_context"):
@@ -655,7 +667,7 @@ def register_ws_routes(
 
         async def _run_message(prompt: str):
             cards.append({"id": str(len(cards)), "question": prompt, "answer": ""})
-            await send(render_cards(cards))
+            await send(draw_cards(cards))
             try:
                 result = _invoke_responder(
                     session_responder,
@@ -665,19 +677,19 @@ def register_ws_routes(
                 if inspect.isasyncgen(result):
                     async for chunk in result:
                         cards[-1]["answer"] += str(chunk)
-                        await send(render_assistant_update(cards[-1]))
+                        await send(draw_update(cards[-1]))
                 else:
                     if inspect.isawaitable(result):
                         result = await result
                     for ch in str(result):
                         cards[-1]["answer"] += ch
-                        await send(render_assistant_update(cards[-1]))
+                        await send(draw_update(cards[-1]))
             except asyncio.CancelledError:
                 if cards and cards[-1].get("answer"):
                     cards[-1]["answer"] += "\n\n[Stopped]"
                 else:
                     cards[-1]["answer"] = "[Stopped]"
-                await send(render_assistant_update(cards[-1]))
+                await send(draw_update(cards[-1]))
             finally:
                 await send(render_chat_data(cards))
                 await send(render_chat_export(cards, responder=session_responder))
@@ -744,7 +756,7 @@ def register_ws_routes(
                     session_responder.load_history(normalized, context=session.get("context"))
                 except Exception:
                     pass
-            await send(render_cards(normalized))
+            await send(draw_cards(normalized))
             await send(render_chat_data(normalized))
             await send(render_chat_export(normalized, responder=session_responder))
             return
